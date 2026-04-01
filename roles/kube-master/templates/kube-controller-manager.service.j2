@@ -1,0 +1,26 @@
+[Unit]
+Description=Kubernetes Controller Manager
+Documentation=https://github.com/kubernetes/kubernetes
+After=network.target
+
+[Service]
+ExecStart={{ bin_dir }}/kube-controller-manager \
+  --bind-address=0.0.0.0 \
+  --allocate-node-cidrs=true \
+  --cluster-cidr={{ pod_cidr }} \
+  --cluster-name=kubernetes \
+  --cluster-signing-cert-file={{ kube_cert_dir }}/k8s-ca.pem \
+  --cluster-signing-key-file={{ kube_cert_dir }}/k8s-ca-key.pem \
+  --kubeconfig={{ kube_cert_dir }}/kube-controller-manager.kubeconfig \
+  --authentication-kubeconfig={{ kube_cert_dir }}/kube-controller-manager.kubeconfig \
+  --authorization-kubeconfig={{ kube_cert_dir }}/kube-controller-manager.kubeconfig \
+  --use-service-account-credentials=true \
+  --service-cluster-ip-range={{ services_cidr }} \
+  --service-account-private-key-file={{ kube_cert_dir }}/sa-key.pem \
+  --root-ca-file={{ kube_cert_dir }}/k8s-ca.pem \
+  --v=2 --leader-elect=true"
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

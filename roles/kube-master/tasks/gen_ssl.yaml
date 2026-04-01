@@ -1,0 +1,30 @@
+- name: Create ssl certs directory
+  ansible.builtin.file:
+    path: "{{ kube_cert_dir }}"
+    state: directory
+    mode: '0755'
+    owner: root
+    group: root
+
+- name: Copy ssl CA to host
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/packages/ssl/{{ item }}"
+    dest: "{{ kube_cert_dir }}/{{ item }}"
+    mode: '0644'
+    owner: root
+    group: root
+  loop:
+    - "ca-config.json"
+    - "etcd-ca.pem"
+    - "etcd-ca-key.pem"
+    - "k8s-ca.pem"
+    - "k8s-ca-key.pem"
+
+- name: Script to generate ssl certs
+  ansible.builtin.script: "gen_ssl.sh"
+  environment:
+    services_cidr: "{{ services_cidr }}"
+    kube_cert_dir: "{{ kube_cert_dir }}"
+    kube_master_ip: "{{ kube_master_ip }}"
+    kube_master_lb: "{{ kube_master_lb | default(kube_master_ip) }}"
+    kube_apiserver_port: "{{ kube_apiserver_port | default(6443) }}"

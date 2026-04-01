@@ -1,0 +1,30 @@
+- name: Copy RBAC files to host
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: "/tmp/{{ item }}"
+    mode: '0755'
+    owner: root
+    group: root
+  loop:
+    - "kube-apiserver-to-kubelet.yaml"
+    - "kubelet-bootstrap.yaml"
+
+- name: Create kube-apiserver to kubelet CSRs
+  ansible.builtin.shell: "kubectl apply -f /tmp/kube-apiserver-to-kubelet.yaml"
+  register: kube_apiserver_to_kubelet
+  failed_when: false
+
+- name: Print kube-apiserver to kubelet RBAC result
+  ansible.builtin.debug:
+    msg: "kube-apiserver to kubelet RBAC creation result: {{ kube_apiserver_to_kubelet.stdout }}"
+
+- name: Create kubelet bootstrap CSRs
+  ansible.builtin.shell: "kubectl apply -f /tmp/kubelet-bootstrap.yaml"
+  register: kubelet_bootstrap
+  failed_when: false
+  when: enable_bootstrap_token_auth | default(false) | bool
+
+- name: Print kubelet bootstrap RBAC result
+  ansible.builtin.debug:
+    msg: "kubelet bootstrap RBAC creation result: {{ kubelet_bootstrap.stdout }}"
+  when: enable_bootstrap_token_auth | default(false) | bool

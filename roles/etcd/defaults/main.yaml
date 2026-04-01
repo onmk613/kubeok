@@ -1,0 +1,22 @@
+# 端口变量
+etcd_client_port: 2379
+etcd_peer_port: 2380
+etcd_metrics_port: 2381
+
+# 为了美观, 所有目录相关变量结尾不能有斜杠
+# 数据目录
+etcd_data_dir: "/var/lib/etcd"
+# 配置目录
+etcd_cert_dir: "/etc/etcd/pki"
+# 预写日志目录
+etcd_wal_dir: "/var/log/etcd/wal"
+# 备份目录
+etcd_backup: true
+etcd_backup_dir: "/var/backups/etcd"
+
+# 不执行安装
+etcd_no_install: false
+# 是否清理etcd数据
+etcd_clean: false
+# 二进制文件目录
+bin_dir: "/usr/bin"

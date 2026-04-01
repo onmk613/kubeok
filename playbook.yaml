@@ -1,0 +1,19 @@
+- name: Install init-node
+  hosts: init-node
+  roles:
+    - init-node
+
+- name: Install etcd
+  hosts: etcd
+  roles:
+    - etcd
+
+- name: Install kube-master
+  hosts: kube-master
+  roles:
+    - kube-master
+
+- name: Install kube-node
+  hosts: kube-node
+  roles:
+    - kube-node

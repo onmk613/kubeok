@@ -1,0 +1,33 @@
+#!/bin/bash
+
+# 设置日志
+exec >> "{{ etcd_backup_dir }}/etcd_backup.log" 2>&1
+
+# 备份文件路径
+backupPath="{{ etcd_backup_dir }}/snapshot.db.`date +%Y-%m-%d-%H-%M`"
+
+# 备份 etcd 数据
+ETCDCTL_API=3 {{ bin_dir }}/etcdctl \
+  --endpoints="https://127.0.0.1:{{ etcd_client_port }}" \
+  snapshot save "$backupPath" \
+  --cacert="{{ etcd_cert_dir }}/etcd-ca.pem" \
+  --cert="{{ etcd_cert_dir }}/etcd.pem" \
+  --key="{{ etcd_cert_dir }}/etcd-key.pem"
+
+# 清理备份文件, 默认保留 30 天的数据
+find "{{ etcd_backup_dir }}" -maxdepth 1 -type f -name 'snapshot.db.*' -mtime +30 -exec rm -f {} +
+
+# 恢复备份
+# 每个节点都需要执行一次, 并且恢复的备份文件必须是同一文件
+# systemctl stop etcd.service
+# rm -rf {{ etcd_data_dir }}/*
+
+# ETCDCTL_API=3 {{ bin_dir }}/etcdctl \
+#   snapshot restore {{ etcd_backup_dir }}/snapshot.db.xxxx-xx-xx-xx-xx \
+#   --data-dir={{ etcd_data_dir }} \
+#   --initial-cluster-token=etcd-cluster-0 \
+#   --name={{ inventory_hostname }} \
+#   --initial-advertise-peer-urls https://{{ etcd_host }}:{{ etcd_peer_port }} \
+#   --initial-cluster={{ etcd_initial_cluster }}
+
+# systemctl start etcd.service

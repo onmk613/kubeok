@@ -1,0 +1,30 @@
+- name: Clean | Stop and disable etcd service
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    state: stopped
+    enabled: false
+  failed_when: false
+  loop:
+    - "kube-apiserver"
+    - "kube-controller-manager"
+    - "kube-scheduler"
+
+- name: Clean | Reload systemd daemon
+  ansible.builtin.systemd:
+    daemon_reload: true
+
+- name: Clean | Remove etcd data files
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - "{{ bin_dir }}/kube-apiserver"
+    - "{{ bin_dir }}/kube-controller-manager"
+    - "{{ bin_dir }}/kube-scheduler"
+    - "{{ bin_dir }}/kubectl"
+    - "{{ ansible_env.HOME }}/.kube"
+    - "/etc/systemd/system/kube-apiserver.service"
+    - "/etc/systemd/system/kube-controller-manager.service"
+    - "/etc/systemd/system/kube-scheduler.service"
+    - "{{ audit_policy_file }}"
+    - "{{ audit_log_path }}"

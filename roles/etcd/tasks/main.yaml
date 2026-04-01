@@ -1,0 +1,76 @@
+- name: Check clean etcd
+  ansible.builtin.include_tasks: "clean_etcd.yaml"
+  when: etcd_clean
+
+- name: Gen etcd host and initial cluster vars
+  ansible.builtin.set_fact:
+    etcd_host: "{{ internal_ip | default(ansible_host) }}"
+    etcd_initial_cluster: >-
+      {%- set cluster = [] -%}
+      {%- for host in groups['etcd'] -%}
+        {%- set name = hostvars[host]['inventory_hostname'] -%}
+        {%- set ip = hostvars[host]['internal_ip'] | default(hostvars[host]['ansible_host']) -%}
+        {%- set port = hostvars[host]['etcd_peer_port'] | default(etcd_peer_port) -%}
+        {%- set _ = cluster.append(name ~ '=https://' ~ ip ~ ':' ~ port) -%}
+      {%- endfor -%}
+      {{ cluster | join(',') }}
+
+- name: Check etcd_no_install
+  ansible.builtin.meta: end_host
+  when: etcd_no_install
+
+- name: Copy binary files to host
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/packages/etcd/{{ ansible_architecture }}/{{ item }}"
+    dest: "{{ bin_dir }}/{{ item }}"
+    mode: '0755'
+    owner: root
+    group: root
+  loop:
+    - "etcd"
+    - "etcdctl"
+    - "etcdutl"
+
+- name: Script to generate ssl certs
+  ansible.builtin.include_tasks: "gen_ssl.yaml"
+
+- name: Check backup etcd
+  ansible.builtin.include_tasks: "backup_etcd.yaml"
+  when: etcd_backup
+
+- name: Copy systemd file to host
+  ansible.builtin.template:
+    src: "etcd.service.j2"
+    dest: "/etc/systemd/system/etcd.service"
+    mode: '0644'
+
+- name: Systemctl daemon_reload
+  ansible.builtin.systemd:
+    name: "etcd"
+    state: stopped
+    daemon_reload: true
+  failed_when: false
+
+- name: Ensure etcd is running and enabled
+  ansible.builtin.systemd:
+    name: "etcd"
+    state: started
+    enabled: true
+
+- name: Check etcd health
+  ansible.builtin.command: "{{ bin_dir }}/etcdctl endpoint health --cluster -w table"
+  register: etcd_health
+  retries: 5
+  delay: 5
+  until: etcd_health.rc == 0
+  changed_when: false
+  environment:
+    ETCDCTL_API: "3"
+    ETCDCTL_CACERT: "{{ etcd_cert_dir }}/etcd-ca.pem"
+    ETCDCTL_CERT: "{{ etcd_cert_dir }}/etcd.pem"
+    ETCDCTL_KEY: "{{ etcd_cert_dir }}/etcd-key.pem"
+    ETCDCTL_ENDPOINTS: "https://127.0.0.1:{{ etcd_client_port }}"
+
+- name: Print etcd health
+  ansible.builtin.debug:
+    msg: "{{ etcd_health.stdout_lines }}"

@@ -1,0 +1,26 @@
+- name: Create ssl certs directory
+  ansible.builtin.file:
+    path: "{{ etcd_cert_dir }}"
+    state: directory
+    mode: '0755'
+    owner: root
+    group: root
+
+- name: Copy ssl CA to host
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/packages/ssl/{{ item }}"
+    dest: "{{ etcd_cert_dir }}/{{ item }}"
+    mode: '0644'
+    owner: root
+    group: root
+  loop:
+    - "ca-config.json"
+    - "etcd-ca.pem"
+    - "etcd-ca-key.pem"
+
+- name: Script to generate ssl certs
+  ansible.builtin.script: "gen_ssl.sh"
+  environment:
+    etcd_cert_dir: "{{ etcd_cert_dir }}"
+    etcd_internal_ip: "{{ etcd_host }}"
+    etcd_lb: "{{ etcd_lb | default(etcd_host) }}"

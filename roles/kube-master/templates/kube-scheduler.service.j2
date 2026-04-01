@@ -1,0 +1,17 @@
+[Unit]
+Description=Kubernetes Scheduler
+Documentation=https://github.com/kubernetes/kubernetes
+After=network.target
+
+[Service]
+ExecStart={{ bin_dir }}/kube-scheduler \
+  --bind-address=0.0.0.0 \
+  --kubeconfig={{ kube_cert_dir }}/kube-scheduler.kubeconfig \
+  --authentication-kubeconfig={{ kube_cert_dir }}/kube-scheduler.kubeconfig \
+  --authorization-kubeconfig={{ kube_cert_dir }}/kube-scheduler.kubeconfig \
+  --v=2 --leader-elect=true"
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

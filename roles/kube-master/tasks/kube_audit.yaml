@@ -1,0 +1,18 @@
+- name: Create audit log directory
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+    owner: root
+    group: root
+  loop:
+    - "{{ audit_policy_file | dirname }}"
+    - "{{ audit_log_path | dirname }}"
+
+- name: Copy audit policy file to host
+  ansible.builtin.copy:
+    src: "audit-policy.yaml"
+    dest: "{{ audit_policy_file }}"
+    mode: '0644'
+    owner: root
+    group: root

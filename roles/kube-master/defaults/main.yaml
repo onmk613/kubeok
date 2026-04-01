@@ -1,0 +1,22 @@
+# 为了美观, 所有目录相关变量结尾不能有斜杠
+kube_apiserver_port: 6443
+etcd_stacked_mode: true
+services_cidr: "10.254.0.0/16"
+pod_cidr: "10.234.0.0/16"
+kube_nodeport_range: "30000-32767"
+kube_cert_dir: "/etc/kubernetes/pki"
+
+# 开启bootstrap token认证, 需要kube版本1.20以上
+enable_bootstrap_token_auth: true
+
+# 是否开启apiserver审计日志
+enable_apiserver_audit: true
+audit_log_path: "/var/log/kubernetes/audit.log"
+audit_policy_file: "/etc/kubernetes/audit/audit-policy.yaml"
+
+# 不执行安装
+kube_master_no_install: false
+# 是否清理数据, 不会清理证书文件, 防止影响到kubelet(node)的正常使用
+kube_master_clean: false
+# 二进制文件目录
+bin_dir: "/usr/bin"

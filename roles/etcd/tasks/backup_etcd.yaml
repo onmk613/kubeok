@@ -1,0 +1,28 @@
+- name: Backup | install cron package
+  ansible.builtin.package:
+    name: "cron"
+    state: present
+
+- name: Backup | Create backup directory
+  ansible.builtin.file:
+    path: "{{ etcd_backup_dir }}"
+    state: directory
+    mode: '0755'
+    owner: root
+    group: root
+
+- name: Backup | Create backup script
+  ansible.builtin.template:
+    src: "etcd_backup.sh.j2"
+    dest: "{{ etcd_backup_dir }}/etcd_backup.sh"
+    mode: '0755'
+    owner: root
+    group: root
+
+- name: Backup | Add cron job for etcd backup
+  ansible.builtin.cron:
+    name: "etcd_backup"
+    minute: "0"
+    hour: "2"
+    user: root
+    job: "/bin/bash {{ etcd_backup_dir }}/etcd_backup.sh"

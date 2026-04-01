@@ -1,0 +1,34 @@
+- name: Clean | Stop and disable etcd service
+  ansible.builtin.systemd:
+    name: "etcd"
+    state: stopped
+    enabled: false
+  failed_when: false
+
+- name: Clean | Reload systemd daemon
+  ansible.builtin.systemd:
+    daemon_reload: true
+
+- name: Clean | Remove etcd data files
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - "{{ bin_dir }}/etcd"
+    - "{{ bin_dir }}/etcdctl"
+    - "{{ bin_dir }}/etcdutl"
+    - "{{ etcd_data_dir }}"
+    - "{{ etcd_cert_dir }}"
+    - "{{ etcd_wal_dir }}"
+    - "/etc/systemd/system/etcd.service"
+
+- name: Clean | Remove etcd backup files
+  ansible.builtin.file:
+    path: "{{ etcd_backup_dir }}"
+    state: absent
+
+- name: Clean | Remove etcd backup cron job
+  ansible.builtin.cron:
+    name: "etcd_backup"
+    state: absent
+  failed_when: false

@@ -1,0 +1,49 @@
+- name: Copy binary files to host
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/packages/cfssl/{{ ansible_architecture }}/{{ item }}"
+    dest: "{{ bin_dir }}/{{ item }}"
+    mode: '0755'
+    owner: root
+    group: root
+  loop:
+    - "cfssl"
+    - "cfssljson"
+- name: Ipv4 forwarding
+  ansible.posix.sysctl:
+    name: net.ipv4.ip_forward
+    value: "1"
+    state: present
+    reload: true
+# for high latency internet
+- name: Tune socket stream receive buf
+  ansible.posix.sysctl:
+    name: net.core.rmem_max
+    value: "4194304"
+    state: present
+    reload: true
+- name: Ipv6 default forwarding
+  ansible.posix.sysctl:
+    name: net.ipv6.conf.default.forwarding
+    value: "1"
+    state: present
+    reload: true
+- name: Ipv6 all forwarding
+  ansible.posix.sysctl:
+    name: net.ipv6.conf.all.forwarding
+    value: "1"
+    state: present
+    reload: true
+- name: Inotify user
+  ansible.posix.sysctl:
+    name: fs.inotify.max_user_instances
+    value: "1024"
+    state: present
+    reload: true
+- name: Disable swap
+  ansible.builtin.command: swapoff -a
+- name: Swapoff persist
+  ansible.builtin.lineinfile:
+    path: /etc/fstab
+    backup: true
+    state: absent
+    regexp: '^[^#].*\s+swap\s+'
