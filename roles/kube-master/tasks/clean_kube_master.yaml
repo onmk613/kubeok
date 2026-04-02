@@ -1,4 +1,4 @@
-- name: Clean | Stop and disable etcd service
+- name: Clean | Stop and disable kube-master service
   ansible.builtin.systemd:
     name: "{{ item }}"
     state: stopped
@@ -13,7 +13,7 @@
   ansible.builtin.systemd:
     daemon_reload: true
 
-- name: Clean | Remove etcd data files
+- name: Clean | Remove kube-master data files
   ansible.builtin.file:
     path: "{{ item }}"
     state: absent

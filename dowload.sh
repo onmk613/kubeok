@@ -13,7 +13,6 @@ else
     TAR_CMD="tar"
 fi
 
-
 # Set architecture environment variables
 set_arch_env() {
     host_arch="${host_arch:-x86_64}"
@@ -86,8 +85,18 @@ download_kube_binary() {
     rm -f crictl-${crictl_version}-linux-${host_arch_alias}.tar.gz
 }
 
+download_required_components() {
+    docker pull --platform linux/ ${host_arch_alias} nginx:1.24.0
+}
+
 # Main execution
 download_etcd_binary
 download_containerd_binary
 download_kube_binary
 download_cfssl_binary
+
+# 下载必要组件镜像, pause, coredns, metrics-server
+# 网络插件(可选): flannel/calico/cilium
+# ingress(可选): nginx/traefik
+# 监控(可选): prometheus
+# download_required_components

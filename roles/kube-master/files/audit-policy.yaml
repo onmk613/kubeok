@@ -25,7 +25,7 @@ rules:
     resources:
       - group: ""
         resources: ["endpoints", "services/status"]
-  
+
   # 规则：记录敏感资源
   - level: RequestResponse
     verbs: ["create", "update", "patch", "delete"]

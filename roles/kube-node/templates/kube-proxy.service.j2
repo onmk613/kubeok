@@ -1,0 +1,16 @@
+[Unit]
+Description=Kubernetes Kube Proxy
+Documentation=https://github.com/kubernetes/kubernetes
+After=network.target
+
+[Service]
+User=root
+ExecStart={{ bin_dir }}/kube-proxy \
+  --config=/etc/kubernetes/kube-proxy.yaml \
+  --hostname-override={{ kube_node_name }} \
+  --v=2
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

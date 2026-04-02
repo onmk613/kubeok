@@ -1,46 +1,14 @@
 - name: Check clean kube-master
-  ansible.builtin.include_tasks: "clean_kube_master.yaml"
-  when: kube_master_clean
+  ansible.builtin.include_tasks: "clean_kube_node.yaml"
+  when: kube_node_clean
 
 - name: Gen kube-master host vars
   ansible.builtin.set_fact:
     kube_master_ip: "{{ internal_ip | default(ansible_host) }}"
 
-- name: Gen etcd server vars
-  ansible.builtin.set_fact:
-    etcd_servers: >-
-      {%- set matches = [] -%}
-      {%- for host in groups['etcd'] -%}
-        {%- if hostvars[host]['etcd_host'] == kube_master_ip -%}
-          {%- set _ = matches.append(hostvars[host]['etcd_client_port'] | default(2379)) -%}
-        {%- endif -%}
-      {%- endfor -%}
-      {%- if matches | length > 0 -%}
-        https://127.0.0.1:{{ matches[0] }}
-      {%- else -%}
-        https://127.0.0.1:2379
-      {%- endif -%}
-  when:
-    - etcd_servers is undefined
-    - etcd_stacked_mode
-
-- name: Gen etcd server vars
-  ansible.builtin.set_fact:
-    etcd_servers: >-
-      {%- set cluster = [] -%}
-      {%- for host in groups['etcd'] -%}
-        {%- set ip = hostvars[host]['internal_ip'] | default(hostvars[host]['ansible_host']) -%}
-        {%- set port = hostvars[host]['etcd_client_port'] | default(2379) -%}
-        {%- set _ = cluster.append('https://' ~ ip ~ ':' ~ port) -%}
-      {%- endfor -%}
-      {{ cluster | join(',') }}
-  when:
-    - etcd_servers is undefined
-    - not etcd_stacked_mode
-
-- name: Check kube-master no install
+- name: Check kube-node no install
   ansible.builtin.meta: end_host
-  when: kube_master_no_install
+  when: kube_master_no_install | default(false) | bool
 
 - name: Copy binary files to host
   ansible.builtin.copy:
@@ -60,7 +28,7 @@
 
 - name: Enable apiserver audit log
   ansible.builtin.include_tasks: "kube_audit.yaml"
-  when: enable_apiserver_audit
+  when: enable_apiserver_audit | default(false) | bool
 
 - name: Copy systemd file to host
   ansible.builtin.template:

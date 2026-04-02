@@ -1,0 +1,28 @@
+apiVersion: kubeproxy.config.k8s.io/v1alpha1
+kind: KubeProxyConfiguration
+bindAddress: 0.0.0.0
+clientConnection:
+  kubeconfig: {{ kube_cert_dir }}/kube-proxy.kubeconfig
+clusterCIDR: {{ pod_cidr }}
+conntrack:
+  maxPerCore: 32768
+  min: 131072
+  tcpCloseWaitTimeout: 1h0m0s
+  tcpEstablishedTimeout: 24h0m0s
+healthzBindAddress: 0.0.0.0:10256
+metricsBindAddress: 0.0.0.0:10249
+mode: "{{ kube_proxy_mode }}"
+{%- if kube_proxy_mode == "ipvs" -%}
+ipvs:
+  minSyncPeriod: 0s
+  # ipvs 调度类型，默认是 rr,支持的所有类型:
+  # rr: round-robin
+  # lc: least connection
+  # dh: destination hashing
+  # sh: source hashing
+  # sed: shortest expected delay
+  # nq: never queue
+  scheduler: rr
+  strictARP: true
+  syncPeriod: 30s
+{%- endif -%}

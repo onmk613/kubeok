@@ -22,9 +22,9 @@
   ansible.builtin.shell: "kubectl apply -f /tmp/kubelet-bootstrap.yaml"
   register: kubelet_bootstrap
   failed_when: false
-  when: enable_bootstrap_token_auth | default(false) | bool
+  when: enable_bootstrap_token_auth
 
 - name: Print kubelet bootstrap RBAC result
   ansible.builtin.debug:
     msg: "kubelet bootstrap RBAC creation result: {{ kubelet_bootstrap.stdout }}"
-  when: enable_bootstrap_token_auth | default(false) | bool
+  when: enable_bootstrap_token_auth

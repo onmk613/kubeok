@@ -1,0 +1,37 @@
+- name: Clean | Stop and disable kube-node service
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    state: stopped
+    enabled: false
+  failed_when: false
+  loop:
+    - "kubelet"
+    - "kube-proxy"
+    - "containerd"
+
+- name: Clean | Reload systemd daemon
+  ansible.builtin.systemd:
+    daemon_reload: true
+
+- name: Clean | Remove kube-node data files
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - "{{ bin_dir }}/kubelet"
+    - "{{ bin_dir }}/kube-proxy"
+    - "/etc/kubernetes/kube-proxy.yaml"
+    - "/etc/kubernetes/kubelet.yaml"
+    - "/etc/kubernetes/nginx"
+    - "/etc/kubernetes/manifests"
+    - "{{ bin_dir }}/crictl"
+    - "{{ bin_dir }}/containerd"
+    - "{{ bin_dir }}/containerd-shim-runc-v2"
+    - "{{ bin_dir }}/ctr"
+    - "{{ bin_dir }}/runc"
+    - "/etc/systemd/system/kubelet.service"
+    - "/etc/systemd/system/kube-proxy.service"
+    - "/etc/systemd/system/containerd.service"
+    - "/etc/containerd/config.toml"
+    - "{{ containerd_data_dir }}"
+    - "{{ kubelet_data_dir }}"

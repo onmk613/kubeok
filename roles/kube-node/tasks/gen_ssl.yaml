@@ -15,17 +15,21 @@
     group: root
   loop:
     - "ca-config.json"
-    - "etcd-ca.pem"
-    - "etcd-ca-key.pem"
     - "k8s-ca.pem"
     - "k8s-ca-key.pem"
 
-- name: Script to generate ssl certs
-  ansible.builtin.script: "gen_ssl.sh"
+- name: Script to generate kubelet ssl certs
+  ansible.builtin.script: "gen_kubelet_ssl.sh"
   environment:
-    services_cidr: "{{ services_cidr }}"
     kube_cert_dir: "{{ kube_cert_dir }}"
     kube_master_ip: "{{ kube_master_ip }}"
-    cluster_domain: "{{ cluster_domain }}"
-    kube_master_lb: "{{ kube_master_lb | default(kube_master_ip) }}"
+    kube_apiserver_port: "{{ kube_apiserver_port }}"
+    kube_node_ip: "{{ kube_node_ip }}"
+    kube_node_name: "{{ kube_node_name }}"
+
+- name: Script to generate kube-proxy ssl certs
+  ansible.builtin.script: "gen_kube_proxy_ssl.sh"
+  environment:
+    kube_cert_dir: "{{ kube_cert_dir }}"
+    kube_master_ip: "{{ kube_master_ip }}"
     kube_apiserver_port: "{{ kube_apiserver_port }}"

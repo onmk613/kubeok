@@ -1,0 +1,48 @@
+apiVersion: kubelet.config.k8s.io/v1beta1
+kind: KubeletConfiguration
+address: 0.0.0.0
+serverTLSBootstrap: true
+rotateCertificates: true
+authentication:
+  anonymous:
+    enabled: false
+  webhook:
+    enabled: true
+  x509:
+    clientCAFile: {{ kube_cert_dir }}/k8s-ca.pem
+authorization:
+  mode: Webhook
+clusterDomain: {{ cluster_domain }}
+clusterDNS:
+  - {{ cluster_dns }}
+cpuCFSQuota: true
+cpuManagerPolicy: static
+memoryManagerPolicy: Static
+topologyManagerPolicy: best-effort
+cgroupDriver: systemd
+featureGates:
+  TopologyAwareHints: true
+  TopologyManagerPolicyBetaOptions: true
+cgroupsPerQOS: true
+systemReserved:
+  cpu: 1
+  memory: 512Mi
+  ephemeral-storage: 5Gi
+kubeReserved:
+  cpu: 500m
+  memory: 512Mi
+  ephemeral-storage: 5Gi
+maxPods: 110
+readOnlyPort: 0
+evictionHard:
+  memory.available: 512Mi
+  nodefs.available: 10%
+  nodefs.inodesFree: 5%
+  imagefs.available: 10%
+  imagefs.inodesFree: 5%
+evictionMaxPodGracePeriod: 30
+mergeDefaultEvictionSettings: true
+resolvConf: /etc/resolv.conf
+containerRuntimeEndpoint: unix:///var/run/containerd/containerd.sock
+tlsCertFile: {{ kube_cert_dir }}/kubelet-${kube_node_name}.pem
+tlsPrivateKeyFile: {{ kube_cert_dir }}/kubelet-${kube_node_name}-key.pem

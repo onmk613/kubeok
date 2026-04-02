@@ -1,0 +1,11 @@
+# 为了保证所有kube-apiserver的重要配置统一
+kube_apiserver_port: 6443
+etcd_stacked_mode: true
+services_cidr: "10.254.0.0/16"
+pod_cidr: "10.234.0.0/16"
+cluster_domain: "cluster.local"
+kube_nodeport_range: "30000-32767"
+# 开启bootstrap token认证, 需要kube版本1.20以上
+enable_bootstrap_token_auth: true
+# 是否开启apiserver审计日志
+enable_apiserver_audit: true

@@ -1,0 +1,14 @@
+# 为了保证所有kube-apiserver的重要配置统一
+kube_apiserver_port: 6443
+services_cidr: "10.254.0.0/16"
+pod_cidr: "10.234.0.0/16"
+cluster_domain: "cluster.local"
+kube_proxy_mode: "ipvs"
+# 是否用IP定义hostname-override参数
+# 默认用 {{ inventory_hostname }}
+use_ip_as_hostname: false
+# cilium替代kube-proxy
+cilium_replace_kube_proxy: false
+# 是否需要通过ansible手动倒入镜像
+# 需要提前在download脚本中配置相关镜像的下载
+offline_pull_images: false

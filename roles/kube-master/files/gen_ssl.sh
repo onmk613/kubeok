@@ -7,20 +7,40 @@ set -x
 mkdir -p /tmp/kube-master
 cd /tmp/kube-master
 
-if [ -z ${services_cidr} ] || [ -z ${kube_cert_dir} ] || [ -z ${kube_master_ip} ] || [ -z ${kube_master_lb} ]; then
-  echo "请设置 services_cidr、kube_cert_dir、kube_master_ip 和 kube_master_lb 环境变量"
+if [ -z ${services_cidr} ] || [ -z ${kube_cert_dir} ] || [ -z ${kube_master_ip} ] || [ -z ${kube_master_lb} ] || [ -z ${kube_apiserver_port} ]; then
+  echo "请设置 services_cidr、kube_cert_dir、kube_master_ip、kube_apiserver_port 和 kube_master_lb 环境变量"
   exit 1
 fi
 
-if [ -z ${kube_apiserver_port} ]; then
-  kube_apiserver_port=6443
-fi
+# if [ -z ${kube_apiserver_port} ]; then
+#   kube_apiserver_port=6443
+# fi
 
 kube_master_endpoint="https://${kube_master_ip}:${kube_apiserver_port}"
 
 services=(${services_cidr//./ })
 service_prefix=${services[0]}"."${services[1]}"."${services[2]}
 KUBERNETES_IP=${service_prefix}.1
+
+# 配置证书hosts
+# 如果有多个lb地址可以通过空格区分
+# 例如: kube_master_lb="myk8s.com mylan.com 192.168.0.99"
+CLUSTER_DOMAIN="${cluster_domain:-cluster.local}"
+HOSTS=(
+    "127.0.0.1"
+    "${KUBERNETES_IP}"
+    "${kube_master_ip}"
+    "${kube_master_lb}"
+    "kubernetes"
+    ${CLUSTER_DOMAIN}"
+    "kubernetes.default"
+    "kubernetes.default.svc"
+    "kubernetes.default.svc.cluster"
+    "kubernetes.default.svc.cluster.local"
+    "kubernetes.default.svc.${CLUSTER_DOMAIN}"
+)
+# 使用 sort -u 去重合并
+HOSTS_JSON=$(printf '"%s"\n' "${HOSTS[@]}" | sort -u | sed '/^"$/d' | paste -sd ',' -)
 
 # etcd 证书 csr json 文件
 cat <<EOF | tee etcd-client-csr.json
@@ -46,17 +66,7 @@ EOF
 cat <<EOF | tee kubernetes-csr.json
 {
   "CN": "kubernetes",
-  "hosts": [
-      "127.0.0.1",
-      "${KUBERNETES_IP}",
-      "${kube_master_ip}",
-      "${kube_master_lb}",
-      "kubernetes",
-      "kubernetes.default",
-      "kubernetes.default.svc",
-      "kubernetes.default.svc.cluster",
-      "kubernetes.default.svc.cluster.local"
-  ],
+  "hosts": [${HOSTS_JSON}],
   "key": {
     "algo": "ecdsa",
     "size": 256
@@ -218,8 +228,8 @@ cfssl gencert \
     --kubeconfig=kube-controller-manager.kubeconfig
 
   kubectl config set-credentials system:kube-controller-manager \
-    --client-certificate=${kube_cert_dir}/kube-controller-manager.pem \
-    --client-key=${kube_cert_dir}/kube-controller-manager-key.pem \
+    --client-certificate=kube-controller-manager.pem \
+    --client-key=kube-controller-manager-key.pem \
     --embed-certs=true \
     --kubeconfig=kube-controller-manager.kubeconfig
 
@@ -240,8 +250,8 @@ cfssl gencert \
     --kubeconfig=kube-scheduler.kubeconfig
 
   kubectl config set-credentials system:kube-scheduler \
-    --client-certificate=${kube_cert_dir}/kube-scheduler.pem \
-    --client-key=${kube_cert_dir}/kube-scheduler-key.pem \
+    --client-certificate=kube-scheduler.pem \
+    --client-key=kube-scheduler-key.pem \
     --embed-certs=true \
     --kubeconfig=kube-scheduler.kubeconfig
 
@@ -262,8 +272,8 @@ cfssl gencert \
     --kubeconfig=admin.kubeconfig
 
   kubectl config set-credentials admin \
-    --client-certificate=${kube_cert_dir}/admin.pem \
-    --client-key=${kube_cert_dir}/admin-key.pem \
+    --client-certificate=admin.pem \
+    --client-key=admin-key.pem \
     --embed-certs=true \
     --kubeconfig=admin.kubeconfig
 

@@ -3,6 +3,7 @@ kube_apiserver_port: 6443
 etcd_stacked_mode: true
 services_cidr: "10.254.0.0/16"
 pod_cidr: "10.234.0.0/16"
+cluster_domain: "cluster.local"
 kube_nodeport_range: "30000-32767"
 kube_cert_dir: "/etc/kubernetes/pki"
 

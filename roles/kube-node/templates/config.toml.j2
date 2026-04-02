@@ -1,0 +1,24 @@
+# containerd config default
+
+version = 2
+state = "/run/containerd"
+root = "{{ containerd_data_dir }}"
+
+[grpc]
+  address = "/run/containerd/containerd.sock"
+
+[plugins]
+  [plugins."io.containerd.grpc.v1.cri"]
+  sandbox_image = "registry.k8s.io/pause:3.10"
+    [plugins."io.containerd.grpc.v1.cri".cni]
+      bin_dir = "/opt/cni/bin"
+      conf_dir = "/etc/cni/net.d"
+  [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc]
+      runtime_type = "io.containerd.runc.v2"
+      sandbox_mode = "podsandbox"
+    [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc.options]
+      SystemdCgroup = true
+{%- if docker_mirror -%}
+  [plugins."io.containerd.grpc.v1.cri".registry.mirrors."docker.io"]
+      endpoint = ["{{ docker_mirror }}"]
+{%- endif -%}
