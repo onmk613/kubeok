@@ -47,13 +47,12 @@
     src: "{{ playbook_dir }}/packages/kube/{{ ansible_architecture }}/{{ item }}"
     dest: "{{ bin_dir }}/{{ item }}"
     mode: '0755'
-    owner: root
-    group: root
   loop:
     - "kube-apiserver"
     - "kube-controller-manager"
     - "kube-scheduler"
     - "kubectl"
+    - "helm"
 
 - name: Script to generate ssl certs
   ansible.builtin.include_tasks: "gen_ssl.yaml"

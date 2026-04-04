@@ -11,6 +11,7 @@ ExecStart={{ bin_dir }}/kubelet \
   --kubeconfig={{ kube_cert_dir }}/kubelet.kubeconfig \
   --root-dir={{ kubelet_data_dir }} \
   --node-ip={{ kube_node_ip }} \
+  --node-labels=role.kubernetes.io={{ kube_node_role }} \
   --hostname-override={{ kube_node_name }} \
   --v=2
 Restart=on-failure

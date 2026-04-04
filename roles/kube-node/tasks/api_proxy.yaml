@@ -1,0 +1,11 @@
+- name: Copy nginx conf to host
+  ansible.builtin.template:
+    src: "nginx.conf.j2"
+    dest: "/etc/kubernetes/nginx/nginx.conf"
+    mode: "0644"
+
+- name: Copy nginx yaml to host
+  ansible.builtin.copy:
+    src: "api-proxy.yaml"
+    dest: "/etc/kubernetes/manifests/api-proxy.yaml"
+    mode: '0644'

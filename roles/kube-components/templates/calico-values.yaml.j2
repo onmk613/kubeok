@@ -1,0 +1,24 @@
+installation:
+  enabled: true
+  cni:
+    type: Calico
+  calicoNetwork:
+    bgp: Enabled
+    ipPools:
+    - cidr: "{{ pod_cidr }}"
+      # VXLAN/IPIP/None
+      encapsulation: None
+      natOutgoing: Enabled
+      nodeSelector: all()
+
+tigeraOperator:
+  image: tigera/operator
+  version: v1.40.7
+  registry: quay.io
+calicoctl:
+  image: quay.io/calico/ctl
+  tag: v3.31.4
+
+kubernetesServiceEndpoint:
+  host: "kubernetes.default"
+  port: "{{ kube_apiserver_port }}"

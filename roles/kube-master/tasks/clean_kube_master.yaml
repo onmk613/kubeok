@@ -22,6 +22,7 @@
     - "{{ bin_dir }}/kube-controller-manager"
     - "{{ bin_dir }}/kube-scheduler"
     - "{{ bin_dir }}/kubectl"
+    - "{{ bin_dir }}/helm"
     - "{{ ansible_env.HOME }}/.kube"
     - "/etc/systemd/system/kube-apiserver.service"
     - "/etc/systemd/system/kube-controller-manager.service"

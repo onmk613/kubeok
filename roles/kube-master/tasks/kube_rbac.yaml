@@ -3,8 +3,6 @@
     src: "{{ item }}"
     dest: "/tmp/{{ item }}"
     mode: '0755'
-    owner: root
-    group: root
   loop:
     - "kube-apiserver-to-kubelet.yaml"
     - "kubelet-bootstrap.yaml"

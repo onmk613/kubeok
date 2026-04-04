@@ -1,34 +1,92 @@
-- name: Check clean kube-master
+- name: Check clean kube-node
   ansible.builtin.include_tasks: "clean_kube_node.yaml"
   when: kube_node_clean
 
-- name: Gen kube-master host vars
+- name: Gen kube-node host vars
   ansible.builtin.set_fact:
-    kube_master_ip: "{{ internal_ip | default(ansible_host) }}"
+    kube_node_ip: "{{ internal_ip | default(ansible_host) }}"
+
+- name: Set kubelet hostname override
+  ansible.builtin.set_fact:
+    kube_node_name: "{{ kube_node_ip if use_ip_as_hostname else inventory_hostname }}"
 
 - name: Check kube-node no install
   ansible.builtin.meta: end_host
-  when: kube_master_no_install | default(false) | bool
+  when: kube_node_no_install | bool
+
+# 如果没有设置kube_master_lb地址, 那么就用静态nginx Pod代理kube-apiserver
+- name: Gen kube master endpoint vars
+  ansible.builtin.set_fact:
+    kube_master_endpoint: >-
+      {{
+        kube_master_lb if kube_master_lb is defined else '127.0.0.1:' + (kube_api_server_port | string)
+      }}
+
+- name: Determine node role
+  ansible.builtin.set_fact:
+    kube_node_role: >-
+      {{
+        'master'
+        if kube_node_ip in (
+          groups.get('kube-master', []) |
+          map('extract', hostvars, ['kube_node_ip']) |
+          list
+        )
+        else 'node'
+      }}
+  when: kube_node_role is defined
+
+- name: Mkdir kubelet conf dir
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+  loop:
+    - "/etc/kubernetes/nginx"
+    - "/etc/kubernetes/manifests"
 
 - name: Copy binary files to host
   ansible.builtin.copy:
-    src: "{{ playbook_dir }}/packages/kube/{{ ansible_architecture }}/{{ item }}"
+    src: "{{ item }}"
     dest: "{{ bin_dir }}/{{ item }}"
     mode: '0755'
-    owner: root
-    group: root
   loop:
-    - "kube-apiserver"
-    - "kube-controller-manager"
-    - "kube-scheduler"
-    - "kubectl"
+    - "{{ playbook_dir }}/packages/kube/{{ ansible_architecture }}/kubelet"
+    - "{{ playbook_dir }}/packages/kube/{{ ansible_architecture }}/kube-proxy"
+    - "{{ playbook_dir }}/packages/kube/{{ ansible_architecture }}/crictl"
+    - "{{ playbook_dir }}/packages/containerd/{{ ansible_architecture }}/containerd"
+    - "{{ playbook_dir }}/packages/containerd/{{ ansible_architecture }}/containerd-shim-runc-v2"
+    - "{{ playbook_dir }}/packages/containerd/{{ ansible_architecture }}/containerd-stress"
+    - "{{ playbook_dir }}/packages/containerd/{{ ansible_architecture }}/ctr"
+    - "{{ playbook_dir }}/packages/containerd/{{ ansible_architecture }}/runc"
+
+- name: Copy config.toml to host
+  ansible.builtin.template:
+    src: "config.toml.j2"
+    dest: "/etcd/containerd/config.toml"
+    mode: "0644"
+
+- name: Copy crictl.yaml to host
+  ansible.builtin.template:
+    src: "crictl.yaml.j2"
+    dest: "/etcd/crictl.yaml"
+    mode: "0644"
+
+- name: Copy kube yaml to host
+  ansible.builtin.template:
+    src: "{{ item }}.j2"
+    dest: "/etc/kubernetes/{{ item }}"
+    mode: "0644"
+  loop:
+    - "kube-proxy.yaml"
+    - "kubelet.yaml"
 
 - name: Script to generate ssl certs
   ansible.builtin.include_tasks: "gen_ssl.yaml"
 
-- name: Enable apiserver audit log
-  ansible.builtin.include_tasks: "kube_audit.yaml"
-  when: enable_apiserver_audit | default(false) | bool
+- name: Gen kube api static pod yaml to host
+  ansible.builtin.include_tasks: "api_proxy.yaml"
+  when: kube_master_lb is defined
 
 - name: Copy systemd file to host
   ansible.builtin.template:
@@ -36,9 +94,9 @@
     dest: "/etc/systemd/system/{{ item }}"
     mode: '0644'
   loop:
-    - "kube-apiserver.service"
-    - "kube-controller-manager.service"
-    - "kube-scheduler.service"
+    - "containerd.service"
+    - "kube-proxy.service"
+    - "kubelet.service"
 
 - name: Systemctl daemon_reload
   ansible.builtin.systemd:
@@ -47,32 +105,26 @@
     daemon_reload: true
   failed_when: false
   loop:
-    - "kube-apiserver"
-    - "kube-controller-manager"
-    - "kube-scheduler"
+    - "containerd"
+    - "kube-proxy"
+    - "kubelet"
 
-- name: Ensure etcd is running and enabled
+- name: Ensure kubelet and containerd is running and enabled
   ansible.builtin.systemd:
     name: "{{ item }}"
     state: started
     enabled: true
   loop:
-    - "kube-apiserver"
-    - "kube-controller-manager"
-    - "kube-scheduler"
+    - "containerd"
+    - "kubelet"
 
-- name: Check kube health
-  ansible.builtin.command: "{{ bin_dir }}/kubectl get componentstatuses"
-  register: kube_health
-  retries: 5
-  delay: 5
-  until: kube_health.rc == 0
-  changed_when: false
+- name: Ensure kube-proxy is running and enabled
+  ansible.builtin.systemd:
+    name: "kube-proxy"
+    state: started
+    enabled: true
+  when: not cilium_replace_kube_proxy
 
-- name: Print kube health
-  ansible.builtin.debug:
-    msg: "{{ kube_health.stdout_lines }}"
-
-- name: Enable bootstrap token auth
-  ansible.builtin.include_tasks: "kube_rbac.yaml"
-  run_once: true
+- name: Offline load kube required components images to host
+  ansible.builtin.include_tasks: "load_images.yaml"
+  when: offline_pull_images

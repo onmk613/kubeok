@@ -1,0 +1,11 @@
+
+ipam:
+  mode: "cluster-pool"
+  operator:
+    clusterPoolIPv4PodCIDRList: ["{{ pod_cidr }}"]
+
+kubeProxyReplacement: {{ cilium_replace_kube_proxy }}
+
+l7Proxy: false
+envoy:
+  enabled: false

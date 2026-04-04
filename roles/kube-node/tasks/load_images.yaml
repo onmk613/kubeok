@@ -1,0 +1,17 @@
+- name: Images | Copy tar package to host
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/packages/images/{{ ansible_architecture }}/kube-components-images.tar.gz"
+    dest: "/tmp/kube-components-images.tar.gz"
+    mode: '0644'
+
+- name: Images | ctr images import
+  ansible.builtin.command: "ctr -n k8s.io images import /tmp/kube-components-images.tar.gz"
+  register: images_import
+  retries: 5
+  delay: 5
+  until: images_import.rc == 0
+  changed_when: false
+
+- name: Images | Print import images
+  ansible.builtin.debug:
+    msg: "{{ images_import.stdout_lines }}"

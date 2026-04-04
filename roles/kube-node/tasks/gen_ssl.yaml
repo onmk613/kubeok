@@ -3,16 +3,12 @@
     path: "{{ kube_cert_dir }}"
     state: directory
     mode: '0755'
-    owner: root
-    group: root
 
 - name: Copy ssl CA to host
   ansible.builtin.copy:
     src: "{{ playbook_dir }}/packages/ssl/{{ item }}"
     dest: "{{ kube_cert_dir }}/{{ item }}"
     mode: '0644'
-    owner: root
-    group: root
   loop:
     - "ca-config.json"
     - "k8s-ca.pem"
@@ -22,8 +18,7 @@
   ansible.builtin.script: "gen_kubelet_ssl.sh"
   environment:
     kube_cert_dir: "{{ kube_cert_dir }}"
-    kube_master_ip: "{{ kube_master_ip }}"
-    kube_apiserver_port: "{{ kube_apiserver_port }}"
+    kube_master_endpoint: "{{ kube_master_endpoint }}"
     kube_node_ip: "{{ kube_node_ip }}"
     kube_node_name: "{{ kube_node_name }}"
 
@@ -31,5 +26,4 @@
   ansible.builtin.script: "gen_kube_proxy_ssl.sh"
   environment:
     kube_cert_dir: "{{ kube_cert_dir }}"
-    kube_master_ip: "{{ kube_master_ip }}"
-    kube_apiserver_port: "{{ kube_apiserver_port }}"
+    kube_master_endpoint: "{{ kube_master_endpoint }}"

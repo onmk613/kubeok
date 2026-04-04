@@ -3,16 +3,12 @@
     path: "{{ etcd_cert_dir }}"
     state: directory
     mode: '0755'
-    owner: root
-    group: root
 
 - name: Copy ssl CA to host
   ansible.builtin.copy:
     src: "{{ playbook_dir }}/packages/ssl/{{ item }}"
     dest: "{{ etcd_cert_dir }}/{{ item }}"
     mode: '0644'
-    owner: root
-    group: root
   loop:
     - "ca-config.json"
     - "etcd-ca.pem"

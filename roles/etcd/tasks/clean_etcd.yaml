@@ -31,4 +31,5 @@
   ansible.builtin.cron:
     name: "etcd_backup"
     state: absent
+  become: true
   failed_when: false

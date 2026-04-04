@@ -7,16 +7,10 @@ set -x
 mkdir -p /tmp/kube-node
 cd /tmp/kube-node
 
-if [ -z ${kube_cert_dir} ] || [ -z ${kube_master_ip} ] || [ -z ${kube_apiserver_port} ]; then
-  echo "请设置 kube_cert_dir、kube_master_ip 和 kube_apiserver_port 环境变量"
+if [ -z ${kube_cert_dir} ] || [ -z ${kube_master_endpoint} ]; then
+  echo "请设置 kube_cert_dir 和 kube_master_endpoint 环境变量"
   exit 1
 fi
-
-# if [ -z ${kube_apiserver_port} ]; then
-#   kube_apiserver_port=6443
-# fi
-
-kube_master_endpoint="https://${kube_master_ip}:${kube_apiserver_port}"
 
 # kube-proxy 证书 csr json 文件
 cat <<EOF | tee kube-proxy-csr.json

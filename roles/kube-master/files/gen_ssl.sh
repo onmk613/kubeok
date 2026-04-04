@@ -7,37 +7,40 @@ set -x
 mkdir -p /tmp/kube-master
 cd /tmp/kube-master
 
-if [ -z ${services_cidr} ] || [ -z ${kube_cert_dir} ] || [ -z ${kube_master_ip} ] || [ -z ${kube_master_lb} ] || [ -z ${kube_apiserver_port} ]; then
-  echo "请设置 services_cidr、kube_cert_dir、kube_master_ip、kube_apiserver_port 和 kube_master_lb 环境变量"
+if [ -z ${cluster_ip} ] || [ -z ${kube_cert_dir} ] || [ -z ${kube_master_ip} ] || [ -z ${kube_master_lb} ] || [ -z ${kube_apiserver_port} ]; then
+  echo "请设置 cluster_i、kube_cert_dir、kube_master_ip、kube_apiserver_port 和 kube_master_lb 环境变量"
   exit 1
 fi
 
-# if [ -z ${kube_apiserver_port} ]; then
-#   kube_apiserver_port=6443
-# fi
-
 kube_master_endpoint="https://${kube_master_ip}:${kube_apiserver_port}"
 
-services=(${services_cidr//./ })
-service_prefix=${services[0]}"."${services[1]}"."${services[2]}
-KUBERNETES_IP=${service_prefix}.1
+# services_cidr=10.96.0.0/16
+# services=(${services_cidr//./ })
+# service_prefix=${services[0]}"."${services[1]}"."${services[2]}
+# KUBERNETES_IP=${service_prefix}.1
+
+# 只去kube_master_lb的host部分, 写入证书
+lb_temp="${kube_master_lb#*://}"
+kube_master_lb_host="${lb_temp%%:*}"
 
 # 配置证书hosts
 # 如果有多个lb地址可以通过空格区分
 # 例如: kube_master_lb="myk8s.com mylan.com 192.168.0.99"
-CLUSTER_DOMAIN="${cluster_domain:-cluster.local}"
+cluster_domain="${cluster_domain:-cluster.local}"
+d_temp="${kube_master_lb#*://}"
+cluster_domain_host="${d_temp%%:*}"
+
 HOSTS=(
     "127.0.0.1"
-    "${KUBERNETES_IP}"
+    "${cluster_ip}"
     "${kube_master_ip}"
-    "${kube_master_lb}"
+    "${kube_master_lb_host}"
     "kubernetes"
-    ${CLUSTER_DOMAIN}"
+    ${cluster_domain_host}"
     "kubernetes.default"
     "kubernetes.default.svc"
-    "kubernetes.default.svc.cluster"
     "kubernetes.default.svc.cluster.local"
-    "kubernetes.default.svc.${CLUSTER_DOMAIN}"
+    "kubernetes.default.svc.${cluster_domain_host}"
 )
 # 使用 sort -u 去重合并
 HOSTS_JSON=$(printf '"%s"\n' "${HOSTS[@]}" | sort -u | sed '/^"$/d' | paste -sd ',' -)

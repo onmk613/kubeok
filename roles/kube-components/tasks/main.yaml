@@ -1,0 +1,85 @@
+- name: Mkdir chart host
+  ansible.builtin.file:
+    path: "/etc/kubernetes/tools/"
+    state: directory
+    mode: '0755'
+
+- name: Copy components charts to host
+  ansible.builtin.copy:
+    src: "{{ itme }}"
+    dest: "/etc/kubernetes/tools/{{ item }}"
+    mode: "0644"
+  loop:
+    - "cilium-1.19.2.tgz"
+    - "tigera-operator-v3.31.4.tgz"
+    - "kube-prometheus-stack-82.17.1.tgz"
+    - "traefik-39.0.7.tgz"
+
+- name: Copy components yaml to host
+  ansible.builtin.template:
+    src: "{{ item }}.j2"
+    dest: "/etc/kubernetes/tools/{{ item }}"
+    mode: "0644"
+  loop:
+    - "calico-values.yaml"
+    - "cilium-values.yaml"
+    - "coredns.yaml"
+    - "metrics-server.yaml"
+    - "traefik-values.yaml"
+
+- name: Apply coredns
+  ansible.builtin.command:
+    cmd: kubectl apply -f coredns.yaml
+    chdir: /etc/kubernetes/tools/
+  register: coredns_health
+  until: coredns_health.rc == 0
+  changed_when: false
+
+- name: Apply metrics-server
+  ansible.builtin.command:
+    cmd: kubectl apply -f metrics-server.yaml
+    chdir: /etc/kubernetes/tools/
+  register: metrics_server_health
+  until: metrics_server_health.rc == 0
+  changed_when: false
+
+- name: Print metrics-server and coredns
+  ansible.builtin.debug:
+    msg: >-
+      {{ coredns_health.stdout_lines }}
+      {{ metrics_server_health.stdout_lines }}
+
+- name: Apply calico
+  ansible.builtin.command:
+    cmd: helm install calico ./tigera-operator-v3.31.4.tgz -f calico-values.yaml -n kube-system
+    chdir: /etc/kubernetes/tools/
+  register: network_health
+  until: network_health.rc == 0
+  changed_when: false
+  when: network_mode == "calico"
+
+- name: Apply cilium
+  ansible.builtin.command:
+    cmd: helm install cilium ./cilium-1.19.2.tgz -f cilium-values.yaml -n kube-system
+    chdir: /etc/kubernetes/tools/
+  register: network_health
+  until: network_health.rc == 0
+  changed_when: false
+  when: network_mode == "cilium"
+
+- name: Print network health
+  ansible.builtin.debug:
+    msg: "{{ network_health.stdout_lines }}"
+
+- name: Apply kube-prometheus-stack
+  ansible.builtin.command:
+    cmd: helm install kube-prometheus ./kube-prometheus-stack-82.17.1.tgz -n kube-system
+    chdir: /etc/kubernetes/tools/
+  register: prometheus_health
+  until: prometheus_health.rc == 0
+  changed_when: false
+  when: install_kube_prometheus_stack
+
+- name: Print prometheus health
+  ansible.builtin.debug:
+    msg: "{{ prometheus_health.stdout_lines }}"

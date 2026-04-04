@@ -42,7 +42,7 @@ evictionHard:
   imagefs.inodesFree: 5%
 evictionMaxPodGracePeriod: 30
 mergeDefaultEvictionSettings: true
-resolvConf: /etc/resolv.conf
+resolvConf: {{ resolv_conf }}
 containerRuntimeEndpoint: unix:///var/run/containerd/containerd.sock
 tlsCertFile: {{ kube_cert_dir }}/kubelet-${kube_node_name}.pem
 tlsPrivateKeyFile: {{ kube_cert_dir }}/kubelet-${kube_node_name}-key.pem

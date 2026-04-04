@@ -1,19 +1,92 @@
+#################################################
+# 清仔细阅读以下简介
+# 详细介绍参考: REAMDE.md
+
+# download.sh
+# 提前下载二进制文件减少每个主机的下载开销
+# 可修改download.sh自定义组件版本
+
+# 证书
+# 执行gen_ca.sh需要提前下载cfss/cfssljson
+# 关于自定义ca证书
+# 证书名强制不能更改, 必须和默认证书名称一致
+# 保证自定义的证书能被cfssl识别
+
+# 变量
+# 必要配置实现变量控制, 参考: defaults/main.yaml
+# 为了保证必要配置统一, 尽量必要尝试主机级别的变量配置
+# 如需自定义某个变量, 请设置playpook/host_all级别
+
+# 配置
+# 避免臃肿配置, 更多参数和配置需自行修改, 当前基本够用
+# 参数变动请修改 templates/ files/ 下的文件内容
+#################################################
+
+#################################################
+# 主机初始化, 主机架构判断, 当前只支持x86_64/aarch64
+# 防火墙, SELinux, Swap分区, 内核参数
+# 必要软件软件和工具安装
+#################################################
 - name: Install init-node
   hosts: init-node
   roles:
     - init-node
-
+#################################################
+# etcd部署
+# 可实现每个主机变量都自定义, 但不推荐这么做
+# 推荐官方的堆叠模式和mater主机保持一致
+#################################################
 - name: Install etcd
   hosts: etcd
   roles:
     - etcd
-
+#################################################
+# 安装Kubernetes控制组件
+#################################################
 - name: Install kube-master
   hosts: kube-master
   roles:
     - kube-master
-
+  vars:
+    kube_apiserver_port: 6443
+    # 默认etcd堆叠模式部署
+    etcd_stacked_mode: true
+    services_cidr: "10.254.0.0/16"
+    pod_cidr: "10.234.0.0/16"
+    cluster_domain: "cluster.local"
+    kube_nodeport_range: "30000-32767"
+    # 开启bootstrap token认证, 需要kube版本1.20以上
+    enable_bootstrap_token_auth: true
+#################################################
+# 安装Kubernetes工作组件
+# 默认静态的nginx代理kube-apiserver
+#################################################
 - name: Install kube-node
   hosts: kube-node
   roles:
     - kube-node
+  vars:
+    # 必须和kube-master一致
+    kube_apiserver_port: 6443
+    services_cidr: "10.254.0.0/16"
+    pod_cidr: "10.234.0.0/16"
+    cluster_domain: "cluster.local"
+    # kube-proxy网络模式
+    kube_proxy_mode: "ipvs"
+    # 是否用IP定义hostname-override参数
+    # 默认用 {{ inventory_hostname }}
+    use_ip_as_hostname: false
+    # cilium替代kube-proxy
+    cilium_replace_kube_proxy: true
+    # 是否需要通过ansible手动倒入镜像
+    # 需要提前在pull_images.sh脚本中配置相关镜像的下载
+    # 保证离线环境kubernetes可初步正常工作
+    offline_pull_images: false
+#################################################
+# Kubernetes组件安装, 其他组件自行安装
+# 如需要自定义安装可注释后不执行此任务
+#################################################
+- name: Install kube components
+  hosts: kube-master[0]
+  roles:
+    - kube-components

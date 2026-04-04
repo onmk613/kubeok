@@ -1,0 +1,39 @@
+image:
+  registry: docker.io
+  repository: traefik
+  tag:  v3.6.12
+  pullPolicy: IfNotPresent
+
+commonLabels:
+  app: traefik
+
+deployment:
+  enabled: true
+  replicas: 1
+
+ingressClass:
+  enabled: true
+  isDefaultClass: true
+  name: traefik
+
+providers:
+  kubernetesCRD:
+    enabled: true
+    ingressClass: traefik
+    labelSelector: ""
+  kubernetesIngress:
+    enabled: true
+    ingressClass: traefik
+    labelSelector: ""
+
+metrics:
+  prometheus:
+    service:
+      enabled: false
+      labels: {}
+
+service:
+  enabled: true
+  single: true
+  type: LoadBalancer
+  annotations: {}

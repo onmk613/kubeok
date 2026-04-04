@@ -32,16 +32,29 @@ set_arch_env() {
 set_arch_env || exit 1
 
 cfssl_version="1.6.5"
-# etcd version >= 3.4.0
 etcd_version="v3.6.9"
 containerd_version="2.2.2"
 runc_version="v1.4.1"
 crictl_version="v1.35.0"
 kube_version="v1.35.0"
+helm_version="v4.1.3"
+
+# releases url
+# https://github.com/cloudflare/cfssl/releases
+# https://github.com/cloudflare/cfssl/releases
+# https://github.com/etcd-io/etcd/releases
+# https://github.com/containerd/containerd/releases
+# https://github.com/opencontainers/runc/releases
+
+# https://github.com/kubernetes-sigs/cri-tools/releases
+
+# https://github.com/kubernetes/kubernetes/releases
+# test: https://dl.k8s.io/release/v1.35.0/bin/linux/amd64/kube-apiserver
+
+# https://github.com/helm/helm/releases
+# test: https://get.helm.sh/helm-v4.1.3-linux-amd64.tar.gz
 
 # cfssl download
-# https://github.com/cloudflare/cfssl/releases/download/v1.6.5/cfssl_1.6.5_linux_amd64
-# https://github.com/cloudflare/cfssl/releases/download/v1.6.5/cfssljson_1.6.5_linux_amd64
 download_cfssl_binary() {
     mkdir -p cfssl/${host_arch}
     wget https://github.com/cloudflare/cfssl/releases/download/v${cfssl_version}/cfssl_${cfssl_version}_linux_${host_arch_alias} -O cfssl/${host_arch}/cfssl
@@ -49,7 +62,6 @@ download_cfssl_binary() {
 }
 
 # etcd download
-# https://github.com/etcd-io/etcd/releases/download/v3.6.9/etcd-v3.6.9-linux-amd64.tar.gz
 download_etcd_binary() {
     wget https://github.com/etcd-io/etcd/releases/download/${etcd_version}/etcd-${etcd_version}-linux-${host_arch_alias}.tar.gz
     mkdir -p etcd/${host_arch}
@@ -58,8 +70,6 @@ download_etcd_binary() {
 }
 
 # container runtime download
-# https://github.com/containerd/containerd/releases/download/v2.2.2/containerd-2.2.2-linux-amd64.tar.gz
-# https://github.com/opencontainers/runc/releases/download/v1.3.5/runc.arm64
 download_containerd_binary() {
     wget https://github.com/containerd/containerd/releases/download/v${containerd_version}/containerd-${containerd_version}-linux-${host_arch_alias}.tar.gz
     mkdir -p containerd/${host_arch}
@@ -69,17 +79,21 @@ download_containerd_binary() {
 }
 
 # kube and crictl download
-# https://dl.k8s.io/release/v1.35.0/bin/linux/amd64/xxx
-# https://github.com/kubernetes-sigs/cri-tools/releases/download/v1.35.0/crictl-v1.35.0-linux-amd64.tar.gz
 download_kube_binary() {
     mkdir -p kube/${host_arch}
     wget https://dl.k8s.io/release/${kube_version}/bin/linux/${host_arch_alias}/kube-apiserver -O kube/${host_arch}/kube-apiserver
     wget https://dl.k8s.io/release/${kube_version}/bin/linux/${host_arch_alias}/kube-controller-manager -O kube/${host_arch}/kube-controller-manager
     wget https://dl.k8s.io/release/${kube_version}/bin/linux/${host_arch_alias}/kube-scheduler -O kube/${host_arch}/kube-scheduler
     wget https://dl.k8s.io/release/${kube_version}/bin/linux/${host_arch_alias}/kubectl -O kube/${host_arch}/kubectl
-    wget https://dl.k8s.io/release/${kube_version}/bin/linux/${host_arch_alias}/kubeadm -O kube/${host_arch}/kubeadm
     wget https://dl.k8s.io/release/${kube_version}/bin/linux/${host_arch_alias}/kubelet -O kube/${host_arch}/kubelet
     wget https://dl.k8s.io/release/${kube_version}/bin/linux/${host_arch_alias}/kube-proxy -O kube/${host_arch}/kube-proxy
+
+    # helm 下载
+    wget https://get.helm.sh/helm-${helm_version}-linux-${host_arch_alias}.tar.gz -O helm-${helm_version}-linux-${host_arch_alias}.tar.gz
+    $TAR_CMD -xf helm-${helm_version}-linux-${host_arch_alias}.tar.gz  -C kube/${host_arch}/ --strip-components=1 --wildcards '*/helm'
+    rm -f helm-${helm_version}-linux-${host_arch_alias}.tar.gz
+
+    # crictl 下载
     wget https://github.com/kubernetes-sigs/cri-tools/releases/download/${crictl_version}/crictl-${crictl_version}-linux-${host_arch_alias}.tar.gz
     $TAR_CMD -xf crictl-${crictl_version}-linux-${host_arch_alias}.tar.gz -C kube/${host_arch}/
     rm -f crictl-${crictl_version}-linux-${host_arch_alias}.tar.gz
