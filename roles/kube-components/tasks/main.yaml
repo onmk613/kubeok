@@ -6,7 +6,7 @@
 
 - name: Copy components charts to host
   ansible.builtin.copy:
-    src: "{{ itme }}"
+    src: "{{ item }}"
     dest: "/etc/kubernetes/tools/{{ item }}"
     mode: "0644"
   loop:
@@ -51,29 +51,35 @@
 
 - name: Apply calico
   ansible.builtin.command:
-    cmd: helm install calico ./tigera-operator-v3.31.4.tgz -f calico-values.yaml -n kube-system
+    cmd: helm upgrade --install calico ./tigera-operator-v3.31.4.tgz -f calico-values.yaml -n kube-system
     chdir: /etc/kubernetes/tools/
-  register: network_health
-  until: network_health.rc == 0
+  register: calico_health
+  until: calico_health.rc == 0
   changed_when: false
+  when: network_mode == "calico"
+
+- name: Print network health
+  ansible.builtin.debug:
+    msg: "{{ calico_health.stdout_lines }}"
   when: network_mode == "calico"
 
 - name: Apply cilium
   ansible.builtin.command:
-    cmd: helm install cilium ./cilium-1.19.2.tgz -f cilium-values.yaml -n kube-system
+    cmd: helm upgrade --install cilium ./cilium-1.19.2.tgz -f cilium-values.yaml -n kube-system
     chdir: /etc/kubernetes/tools/
-  register: network_health
-  until: network_health.rc == 0
+  register: cilium_health
+  until: cilium_health.rc == 0
   changed_when: false
   when: network_mode == "cilium"
 
 - name: Print network health
   ansible.builtin.debug:
-    msg: "{{ network_health.stdout_lines }}"
+    msg: "{{ cilium_health.stdout_lines }}"
+  when: network_mode == "cilium"
 
 - name: Apply kube-prometheus-stack
   ansible.builtin.command:
-    cmd: helm install kube-prometheus ./kube-prometheus-stack-82.17.1.tgz -n kube-system
+    cmd: helm upgrade --install kube-prometheus ./kube-prometheus-stack-82.17.1.tgz -n kube-system
     chdir: /etc/kubernetes/tools/
   register: prometheus_health
   until: prometheus_health.rc == 0
@@ -83,3 +89,4 @@
 - name: Print prometheus health
   ansible.builtin.debug:
     msg: "{{ prometheus_health.stdout_lines }}"
+  when: install_kube_prometheus_stack

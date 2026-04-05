@@ -19,7 +19,7 @@
   ansible.builtin.set_fact:
     kube_master_endpoint: >-
       {{
-        kube_master_lb if kube_master_lb is defined else '127.0.0.1:' + (kube_api_server_port | string)
+        kube_master_lb if kube_master_lb is defined else '127.0.0.1:' + (kube_apiserver_port | string)
       }}
 
 - name: Determine node role
@@ -27,14 +27,11 @@
     kube_node_role: >-
       {{
         'master'
-        if kube_node_ip in (
-          groups.get('kube-master', []) |
-          map('extract', hostvars, ['kube_node_ip']) |
-          list
-        )
+        if (kube_node_ip in groups.get('kube-master', []) or
+            kube_node_ip in (groups.get('kube-master', []) | map('extract', hostvars, 'ansible_host') | list) or
+            kube_node_ip in (groups.get('kube-master', []) | map('extract', hostvars, 'internal_ip') | select('defined') | list))
         else 'node'
       }}
-  when: kube_node_role is defined
 
 - name: Mkdir kubelet conf dir
   ansible.builtin.file:
@@ -44,32 +41,41 @@
   loop:
     - "/etc/kubernetes/nginx"
     - "/etc/kubernetes/manifests"
+    - "/etc/containerd"
 
-- name: Copy binary files to host
+- name: Copy kube binary files to host
   ansible.builtin.copy:
-    src: "{{ item }}"
+    src: "{{ playbook_dir }}/packages/kube/{{ ansible_architecture }}/{{ item }}"
     dest: "{{ bin_dir }}/{{ item }}"
     mode: '0755'
   loop:
-    - "{{ playbook_dir }}/packages/kube/{{ ansible_architecture }}/kubelet"
-    - "{{ playbook_dir }}/packages/kube/{{ ansible_architecture }}/kube-proxy"
-    - "{{ playbook_dir }}/packages/kube/{{ ansible_architecture }}/crictl"
-    - "{{ playbook_dir }}/packages/containerd/{{ ansible_architecture }}/containerd"
-    - "{{ playbook_dir }}/packages/containerd/{{ ansible_architecture }}/containerd-shim-runc-v2"
-    - "{{ playbook_dir }}/packages/containerd/{{ ansible_architecture }}/containerd-stress"
-    - "{{ playbook_dir }}/packages/containerd/{{ ansible_architecture }}/ctr"
-    - "{{ playbook_dir }}/packages/containerd/{{ ansible_architecture }}/runc"
+    - "kubelet"
+    - "kube-proxy"
+    - "crictl"
+    - "kubectl"
+
+- name: Copy containerd binary files to host
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/packages/containerd/{{ ansible_architecture }}/{{ item }}"
+    dest: "{{ bin_dir }}/{{ item }}"
+    mode: '0755'
+  loop:
+    - "containerd"
+    - "containerd-shim-runc-v2"
+    - "containerd-stress"
+    - "ctr"
+    - "runc"
 
 - name: Copy config.toml to host
   ansible.builtin.template:
     src: "config.toml.j2"
-    dest: "/etcd/containerd/config.toml"
+    dest: "/etc/containerd/config.toml"
     mode: "0644"
 
 - name: Copy crictl.yaml to host
   ansible.builtin.template:
     src: "crictl.yaml.j2"
-    dest: "/etcd/crictl.yaml"
+    dest: "/etc/crictl.yaml"
     mode: "0644"
 
 - name: Copy kube yaml to host
@@ -86,7 +92,7 @@
 
 - name: Gen kube api static pod yaml to host
   ansible.builtin.include_tasks: "api_proxy.yaml"
-  when: kube_master_lb is defined
+  when: kube_master_lb is not defined
 
 - name: Copy systemd file to host
   ansible.builtin.template:

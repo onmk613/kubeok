@@ -18,7 +18,7 @@ ExecStart={{ bin_dir }}/kube-controller-manager \
   --service-cluster-ip-range={{ services_cidr }} \
   --service-account-private-key-file={{ kube_cert_dir }}/sa-key.pem \
   --root-ca-file={{ kube_cert_dir }}/k8s-ca.pem \
-  --v=2 --leader-elect=true"
+  --v=2 --leader-elect=true
 Restart=always
 RestartSec=5
 

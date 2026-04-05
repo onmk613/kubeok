@@ -18,7 +18,7 @@ root = "{{ containerd_data_dir }}"
       sandbox_mode = "podsandbox"
     [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc.options]
       SystemdCgroup = true
-{%- if docker_mirror -%}
+{% if docker_mirror is defined and docker_mirror %}
   [plugins."io.containerd.grpc.v1.cri".registry.mirrors."docker.io"]
       endpoint = ["{{ docker_mirror }}"]
-{%- endif -%}
+{% endif %}

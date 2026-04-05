@@ -77,7 +77,7 @@
     # 默认用 {{ inventory_hostname }}
     use_ip_as_hostname: false
     # cilium替代kube-proxy
-    cilium_replace_kube_proxy: true
+    cilium_replace_kube_proxy: false
     # 是否需要通过ansible手动倒入镜像
     # 需要提前在pull_images.sh脚本中配置相关镜像的下载
     # 保证离线环境kubernetes可初步正常工作
@@ -90,3 +90,13 @@
   hosts: kube-master[0]
   roles:
     - kube-components
+  vars:
+    network_mode: calico
+    coredns_version: v1.12.1
+    cluster_domain: "cluster.local"
+    services_cidr: "10.254.0.0/16"
+    pod_cidr: "10.234.0.0/16"
+    resolv_conf: "/etc/resolv.conf"
+    cilium_replace_kube_proxy: false
+    kube_apiserver_port: 6443
+    install_kube_prometheus_stack: false

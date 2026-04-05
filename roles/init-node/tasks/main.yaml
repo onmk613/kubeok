@@ -3,8 +3,6 @@
     src: "{{ playbook_dir }}/packages/cfssl/{{ ansible_architecture }}/{{ item }}"
     dest: "{{ bin_dir }}/{{ item }}"
     mode: '0755'
-    owner: root
-    group: root
   loop:
     - "cfssl"
     - "cfssljson"
@@ -41,9 +39,11 @@
     reload: true
 - name: Disable swap
   ansible.builtin.command: swapoff -a
+  failed_when: false
 - name: Swapoff persist
   ansible.builtin.lineinfile:
     path: /etc/fstab
     backup: true
     state: absent
     regexp: '^[^#].*\s+swap\s+'
+  failed_when: false

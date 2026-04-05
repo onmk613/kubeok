@@ -6,6 +6,9 @@ metadata:
   labels:
     k8s-app: kube-nginx
 spec:
+  securityContext:
+    seccompProfile:
+      type: Unconfined
   hostNetwork: true
   nodeSelector:
     beta.kubernetes.io/os: linux

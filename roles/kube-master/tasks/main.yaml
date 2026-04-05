@@ -95,8 +95,8 @@
 - name: Check kube health
   ansible.builtin.command: "{{ bin_dir }}/kubectl get componentstatuses"
   register: kube_health
-  retries: 5
-  delay: 5
+  retries: 3
+  delay: 3
   until: kube_health.rc == 0
   changed_when: false
 

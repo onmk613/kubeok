@@ -4,6 +4,7 @@ set -e
 set -x
 
 # 创建临时目录并进入
+rm -rf /tmp/kube-master
 mkdir -p /tmp/kube-master
 cd /tmp/kube-master
 
@@ -36,7 +37,7 @@ HOSTS=(
     "${kube_master_ip}"
     "${kube_master_lb_host}"
     "kubernetes"
-    ${cluster_domain_host}"
+    "${cluster_domain_host}"
     "kubernetes.default"
     "kubernetes.default.svc"
     "kubernetes.default.svc.cluster.local"

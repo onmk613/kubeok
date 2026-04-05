@@ -5,13 +5,13 @@ After=network.target
 
 [Service]
 ExecStart={{ bin_dir }}/kube-apiserver \
-{%- if enable_apiserver_audit -%}
+{% if enable_apiserver_audit -%}
   --audit-log-maxage=30 \
   --audit-log-maxbackup=4 \
   --audit-log-maxsize=100 \
   --audit-policy-file={{ audit_policy_file }} \
   --audit-log-path={{ audit_log_path }} \
-{%- endif -%}
+{% endif -%}
   --allow-privileged=true \
   --runtime-config=api/all=true \
   --advertise-address={{ kube_master_ip }} \
@@ -31,9 +31,9 @@ ExecStart={{ bin_dir }}/kube-apiserver \
   --kubelet-client-certificate={{ kube_cert_dir }}/kubernetes.pem \
   --kubelet-client-key={{ kube_cert_dir }}/kubernetes-key.pem \
   --kubelet-preferred-address-types=InternalIP,Hostname,ExternalIP \
-{%- if enable_bootstrap_token_auth %}
+{% if enable_bootstrap_token_auth %}
   --enable-bootstrap-token-auth=true \
-{%- endif %}
+{% endif %}
   --service-account-key-file={{ kube_cert_dir }}/sa.pem \
   --service-account-signing-key-file={{ kube_cert_dir }}/sa-key.pem \
   --service-account-issuer=https://kubernetes.default.svc.cluster.local \

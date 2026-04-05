@@ -12,7 +12,7 @@ conntrack:
 healthzBindAddress: 0.0.0.0:10256
 metricsBindAddress: 0.0.0.0:10249
 mode: "{{ kube_proxy_mode }}"
-{%- if kube_proxy_mode == "ipvs" -%}
+{% if kube_proxy_mode == "ipvs" %}
 ipvs:
   minSyncPeriod: 0s
   # ipvs 调度类型，默认是 rr,支持的所有类型:
@@ -25,4 +25,4 @@ ipvs:
   scheduler: rr
   strictARP: true
   syncPeriod: 30s
-{%- endif -%}
+{% endif %}
