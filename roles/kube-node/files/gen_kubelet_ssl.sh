@@ -12,6 +12,8 @@ if [ -z ${kube_cert_dir} ] || [ -z ${kube_master_endpoint} ] || [ -z ${kube_node
   exit 1
 fi
 
+[[ "$kube_master_endpoint" =~ ^https:// ]] || kube_master_endpoint="https://$kube_master_endpoint"
+
 # 配置证书hosts
 HOSTS=(
     "127.0.0.1"

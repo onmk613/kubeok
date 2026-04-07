@@ -13,6 +13,20 @@
   ansible.builtin.systemd:
     daemon_reload: true
 
+- name: Clean | Remove kube-node mount points
+  become: true
+  ansible.builtin.shell: |
+    for i in $(grep {{ item }} /proc/mounts | awk '{print $2}'); do
+      echo "Unmounting $i"
+      umount -l $i || true
+    done
+  args:
+    executable: /bin/bash
+  failed_when: false
+  loop:
+    - kubelet
+    - containerd
+
 - name: Clean | Remove kube-node data files
   ansible.builtin.file:
     path: "{{ item }}"
@@ -36,3 +50,10 @@
     - "/etc/containerd/config.toml"
     - "{{ containerd_data_dir }}"
     - "{{ kubelet_data_dir }}"
+
+- name: Clean | Kill nginx proxy process if exists
+  become: true
+  ansible.builtin.shell: "pgrep nginx | xargs kill -9"
+  args:
+    executable: /bin/bash
+  failed_when: false

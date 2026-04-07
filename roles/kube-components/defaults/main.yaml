@@ -1,9 +1,9 @@
 # calico/cilium
-network_mode: calico
+network_mode: cilium
 
 # coredns参数
 # 可直接参考: https://github.com/coredns/deployment/blob/master/kubernetes/coredns.yaml.sed
-coredns_version: v1.12.1
+coredns_version: 1.12.2
 # registry.k8s.io/coredns/coredns:v1.12.1
 # 需要和 Kubernetes 部署保持一致
 cluster_domain: "cluster.local"
@@ -17,7 +17,7 @@ resolv_conf: "/etc/resolv.conf"
 
 # 根据cilium charts 1.19.2 配置的values.yaml
 # 使用cilium替代kube-proxy, 内核版本需要满足 >= 5.4.+
-cilium_replace_kube_proxy: false
+cilium_replace_kube_proxy: true
 
 # calico
 kube_apiserver_port: 6443

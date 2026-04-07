@@ -28,7 +28,7 @@ kube_master_lb_host="${lb_temp%%:*}"
 # 如果有多个lb地址可以通过空格区分
 # 例如: kube_master_lb="myk8s.com mylan.com 192.168.0.99"
 cluster_domain="${cluster_domain:-cluster.local}"
-d_temp="${kube_master_lb#*://}"
+d_temp="${cluster_domain#*://}"
 cluster_domain_host="${d_temp%%:*}"
 
 HOSTS=(

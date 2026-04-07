@@ -1,3 +1,9 @@
+- name: Mkdir nginx conf dir
+  ansible.builtin.file:
+    path: "/etc/kubernetes/nginx"
+    state: directory
+    mode: "0755"
+
 - name: Copy nginx conf to host
   ansible.builtin.template:
     src: "nginx.conf.j2"

@@ -19,19 +19,19 @@
   ansible.builtin.set_fact:
     kube_master_endpoint: >-
       {{
-        kube_master_lb if kube_master_lb is defined else '127.0.0.1:' + (kube_apiserver_port | string)
+        kube_master_lb if kube_master_lb is defined else 'https://127.0.0.1:' + (kube_apiserver_port | string)
       }}
 
-- name: Determine node role
-  ansible.builtin.set_fact:
-    kube_node_role: >-
-      {{
-        'master'
-        if (kube_node_ip in groups.get('kube-master', []) or
-            kube_node_ip in (groups.get('kube-master', []) | map('extract', hostvars, 'ansible_host') | list) or
-            kube_node_ip in (groups.get('kube-master', []) | map('extract', hostvars, 'internal_ip') | select('defined') | list))
-        else 'node'
-      }}
+# - name: Determine node role
+#   ansible.builtin.set_fact:
+#     kube_node_role: >-
+#       {{
+#         'master'
+#         if (kube_node_ip in groups.get('kube-master', []) or
+#             kube_node_ip in (groups.get('kube-master', []) | map('extract', hostvars, 'ansible_host') | list) or
+#             kube_node_ip in (groups.get('kube-master', []) | map('extract', hostvars, 'internal_ip') | select('defined') | list))
+#         else 'node'
+#       }}
 
 - name: Mkdir kubelet conf dir
   ansible.builtin.file:
@@ -39,7 +39,6 @@
     state: directory
     mode: "0755"
   loop:
-    - "/etc/kubernetes/nginx"
     - "/etc/kubernetes/manifests"
     - "/etc/containerd"
 
