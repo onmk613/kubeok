@@ -1,0 +1,43 @@
+init-node:
+  children:
+    etcd:
+    kube-master:
+    kube-node:
+
+etcd:
+  # vars:
+  #   etcd_no_install: true
+  #   etcd_clean: true
+  hosts:
+    etcd-1:
+      ansible_host: 10.8.2.104
+    etcd-2:
+      ansible_host: 10.8.2.105
+    etcd-3:
+      ansible_host: 10.8.2.106
+
+kube-master:
+  # vars:
+  #   kube_master_no_install: true
+  #   kube_master_clean: true
+  hosts:
+    kube-master-1:
+      ansible_host: 10.8.2.104
+    kube-master-2:
+      ansible_host: 10.8.2.105
+    kube-master-3:
+      ansible_host: 10.8.2.106
+
+kube-node:
+  vars:
+  #   kube_node_no_install: true
+  #   kube_node_clean: true
+  hosts:
+    kube-node-1:
+      ansible_host: 10.8.2.104
+    kube-node-2:
+      ansible_host: 10.8.2.105
+    kube-node-3:
+      ansible_host: 10.8.2.106
+    kube-node-4:
+      ansible_host: 10.8.2.107
