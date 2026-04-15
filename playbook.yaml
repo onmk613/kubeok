@@ -47,16 +47,6 @@
   hosts: kube-master
   roles:
     - kube-master
-  vars:
-    kube_apiserver_port: 6443
-    # 默认etcd堆叠模式部署
-    etcd_stacked_mode: true
-    services_cidr: "10.254.0.0/16"
-    pod_cidr: "10.234.0.0/16"
-    cluster_domain: "cluster.local"
-    kube_nodeport_range: "30000-32767"
-    # 开启bootstrap token认证, 需要kube版本1.20以上
-    enable_bootstrap_token_auth: true
 #################################################
 # 安装Kubernetes工作组件
 # 默认静态的nginx代理kube-apiserver
@@ -65,22 +55,6 @@
   hosts: kube-node
   roles:
     - kube-node
-  vars:
-    # 必须和kube-master一致
-    kube_apiserver_port: 6443
-    services_cidr: "10.254.0.0/16"
-    pod_cidr: "10.234.0.0/16"
-    cluster_domain: "cluster.local"
-    # kube-proxy网络模式
-    kube_proxy_mode: "ipvs"
-    # 是否用IP定义hostname-override参数
-    # 默认用 {{ inventory_hostname }}
-    use_ip_as_hostname: false
-    # cilium替代kube-proxy
-    cilium_replace_kube_proxy: true
-    # 是否需要通过ansible手动倒入镜像
-    # 保证离线环境kubernetes可初步正常工作
-    offline_pull_images: false
 #################################################
 # Kubernetes组件安装, 其他组件自行安装
 # 如需要自定义安装可注释后不执行此任务
@@ -89,13 +63,3 @@
   hosts: kube-master[0]
   roles:
     - kube-components
-  vars:
-    network_mode: cilium
-    coredns_version: 1.12.2
-    cluster_domain: "cluster.local"
-    services_cidr: "10.254.0.0/16"
-    pod_cidr: "10.234.0.0/16"
-    resolv_conf: "/etc/resolv.conf"
-    cilium_replace_kube_proxy: true
-    kube_apiserver_port: 6443
-    install_kube_prometheus_stack: false

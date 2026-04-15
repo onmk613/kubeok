@@ -1,8 +1,19 @@
-init-node:
-  children:
-    etcd:
-    kube-master:
-    kube-node:
+all:
+  vars:
+    kube_apiserver_port: 6443
+    etcd_stacked_mode: true
+    services_cidr: "10.254.0.0/16"
+    pod_cidr: "10.234.0.0/16"
+    cluster_domain: "cluster.local"
+    kube_nodeport_range: "30000-32767"
+    network_mode: cilium
+    cilium_replace_kube_proxy: true
+
+# init-node:
+#   children:
+#     etcd:
+#     kube-master:
+#     kube-node:
 
 etcd:
   # vars:
@@ -29,7 +40,7 @@ kube-master:
       ansible_host: 10.8.2.106
 
 kube-node:
-  vars:
+  # vars:
   #   kube_node_no_install: true
   #   kube_node_clean: true
   hosts:

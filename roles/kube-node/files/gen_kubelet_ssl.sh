@@ -53,26 +53,26 @@ cfssl gencert \
   ./kubelet-csr.json | cfssljson -bare kubelet-${kube_node_name}
 
 # 生成 kubelet.kubeconfig 文件
-{
-  kubectl config set-cluster kubernetes \
-    --certificate-authority=${kube_cert_dir}/k8s-ca.pem \
-    --embed-certs=true \
-    --server=${kube_master_endpoint} \
-    --kubeconfig=kubelet.kubeconfig
-
-  kubectl config set-credentials system:node:${kube_node_name} \
-    --client-certificate=kubelet-${kube_node_name}.pem \
-    --client-key=kubelet-${kube_node_name}-key.pem \
-    --embed-certs=true \
-    --kubeconfig=kubelet.kubeconfig
-
-  kubectl config set-context default \
-    --cluster=kubernetes \
-    --user=system:node:${kube_node_name} \
-    --kubeconfig=kubelet.kubeconfig
-
-  kubectl config use-context default --kubeconfig=kubelet.kubeconfig
-}
+cat <<EOF | tee kubelet.kubeconfig
+apiVersion: v1
+clusters:
+- cluster:
+    certificate-authority: ${kube_cert_dir}/k8s-ca.pem
+    server: ${kube_master_endpoint}
+  name: kubernetes
+contexts:
+- context:
+    cluster: kubernetes
+    user: system:node:${kube_node_name}
+  name: default
+current-context: default
+kind: Config
+users:
+- name: system:node:${kube_node_name}
+  user:
+    client-certificate: ${kube_cert_dir}/kubelet-${kube_node_name}.pem
+    client-key: ${kube_cert_dir}/kubelet-${kube_node_name}-key.pem
+EOF
 
 # 复制证书到指定目录
 mv *.pem ${kube_cert_dir}/

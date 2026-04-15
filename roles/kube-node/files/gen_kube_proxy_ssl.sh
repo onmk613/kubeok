@@ -41,26 +41,26 @@ cfssl gencert \
   ./kube-proxy-csr.json | cfssljson -bare kube-proxy
 
 # 生成 kube-proxy.kubeconfig 文件
-{
-  kubectl config set-cluster kubernetes \
-    --certificate-authority=${kube_cert_dir}/k8s-ca.pem \
-    --embed-certs=true \
-    --server=${kube_master_endpoint} \
-    --kubeconfig=kube-proxy.kubeconfig
-
-  kubectl config set-credentials system:kube-proxy \
-    --client-certificate=kube-proxy.pem \
-    --client-key=kube-proxy-key.pem \
-    --embed-certs=true \
-    --kubeconfig=kube-proxy.kubeconfig
-
-  kubectl config set-context default \
-    --cluster=kubernetes \
-    --user=system:kube-proxy \
-    --kubeconfig=kube-proxy.kubeconfig
-
-  kubectl config use-context default --kubeconfig=kube-proxy.kubeconfig
-}
+cat <<EOF | tee kube-proxy.kubeconfig
+apiVersion: v1
+clusters:
+- cluster:
+    certificate-authority: ${kube_cert_dir}/k8s-ca.pem
+    server: ${kube_master_endpoint}
+  name: kubernetes
+contexts:
+- context:
+    cluster: kubernetes
+    user: system:kube-proxy
+  name: default
+current-context: default
+kind: Config
+users:
+- name: system:kube-proxy
+  user:
+    client-certificate: ${kube_cert_dir}/kube-proxy.pem
+    client-key: ${kube_cert_dir}/kube-proxy-key.pem
+EOF
 
 # 复制证书到指定目录
 mv *.pem ${kube_cert_dir}/

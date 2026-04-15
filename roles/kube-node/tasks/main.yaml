@@ -51,7 +51,6 @@
     - "kubelet"
     - "kube-proxy"
     - "crictl"
-    - "kubectl"
 
 - name: Copy containerd binary files to host
   ansible.builtin.copy:

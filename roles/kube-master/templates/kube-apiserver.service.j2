@@ -14,6 +14,8 @@ ExecStart={{ bin_dir }}/kube-apiserver \
 {% endif -%}
   --allow-privileged=true \
   --runtime-config=api/all=true \
+  --default-not-ready-toleration-seconds=300 \
+  --default-unreachable-toleration-seconds=300 \
   --advertise-address={{ kube_master_ip }} \
   --bind-address={{ kube_master_ip }} \
   --secure-port={{ kube_apiserver_port }} \

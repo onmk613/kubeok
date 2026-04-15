@@ -223,71 +223,93 @@ cfssl gencert \
   -profile=kubernetes \
   ./admin-csr.json | cfssljson -bare admin
 
+# 方便证书更换和集群安全，所有kubeconfig文件都直接指定证书路径，不做base64转码
 # 创建 kube-controller-manager 的 kubeconfig 文件
-{
-  kubectl config set-cluster kubernetes \
-    --certificate-authority=${kube_cert_dir}/k8s-ca.pem \
-    --embed-certs=true \
-    --server=${kube_master_endpoint} \
-    --kubeconfig=kube-controller-manager.kubeconfig
-
-  kubectl config set-credentials system:kube-controller-manager \
-    --client-certificate=kube-controller-manager.pem \
-    --client-key=kube-controller-manager-key.pem \
-    --embed-certs=true \
-    --kubeconfig=kube-controller-manager.kubeconfig
-
-  kubectl config set-context default \
-    --cluster=kubernetes \
-    --user=system:kube-controller-manager \
-    --kubeconfig=kube-controller-manager.kubeconfig
-
-  kubectl config use-context default --kubeconfig=kube-controller-manager.kubeconfig
-}
+cat <<EOF | tee kube-controller-manager.kubeconfig
+apiVersion: v1
+clusters:
+- cluster:
+    certificate-authority: ${kube_cert_dir}/k8s-ca.pem
+    server: ${kube_master_endpoint}
+  name: kubernetes
+contexts:
+- context:
+    cluster: kubernetes
+    user: system:kube-controller-manager
+  name: default
+current-context: default
+kind: Config
+users:
+- name: system:kube-controller-manager
+  user:
+    client-certificate: ${kube_cert_dir}/kube-controller-manager.pem
+    client-key: ${kube_cert_dir}/kube-controller-manager-key.pem
+EOF
 
 # 生成kube-scheduler.kubeconfig文件
-{
-  kubectl config set-cluster kubernetes \
-    --certificate-authority=${kube_cert_dir}/k8s-ca.pem \
-    --embed-certs=true \
-    --server=${kube_master_endpoint} \
-    --kubeconfig=kube-scheduler.kubeconfig
-
-  kubectl config set-credentials system:kube-scheduler \
-    --client-certificate=kube-scheduler.pem \
-    --client-key=kube-scheduler-key.pem \
-    --embed-certs=true \
-    --kubeconfig=kube-scheduler.kubeconfig
-
-  kubectl config set-context default \
-    --cluster=kubernetes \
-    --user=system:kube-scheduler \
-    --kubeconfig=kube-scheduler.kubeconfig
-
-  kubectl config use-context default --kubeconfig=kube-scheduler.kubeconfig
-}
+cat <<EOF | tee kube-scheduler.kubeconfig
+apiVersion: v1
+clusters:
+- cluster:
+    certificate-authority: ${kube_cert_dir}/k8s-ca.pem
+    server: ${kube_master_endpoint}
+  name: kubernetes
+contexts:
+- context:
+    cluster: kubernetes
+    user: system:kube-scheduler
+  name: default
+current-context: default
+kind: Config
+users:
+- name: system:kube-scheduler
+  user:
+    client-certificate: ${kube_cert_dir}/kube-scheduler.pem
+    client-key: ${kube_cert_dir}/kube-scheduler-key.pem
+EOF
 
 # 生成admin.kubeconfig(kubectl)文件
-{
-  kubectl config set-cluster kubernetes \
-    --certificate-authority=${kube_cert_dir}/k8s-ca.pem \
-    --embed-certs=true \
-    --server=${kube_master_endpoint} \
-    --kubeconfig=admin.kubeconfig
+cat <<EOF | tee admin.kubeconfig
+apiVersion: v1
+clusters:
+- cluster:
+    certificate-authority: ${kube_cert_dir}/k8s-ca.pem
+    server: ${kube_master_endpoint}
+  name: kubernetes
+contexts:
+- context:
+    cluster: kubernetes
+    user: admin
+  name: default
+current-context: default
+kind: Config
+users:
+- name: admin
+  user:
+    client-certificate: ${kube_cert_dir}/admin.pem
+    client-key: ${kube_cert_dir}/admin-key.pem
+EOF
+# 可远程的kubectl 证书文件请手动生成
+# {
+#   kubectl config set-cluster kubernetes \
+#     --certificate-authority=${kube_cert_dir}/k8s-ca.pem \
+#     --embed-certs=true \
+#     --server=${kube_master_endpoint} \
+#     --kubeconfig=admin.kubeconfig
 
-  kubectl config set-credentials admin \
-    --client-certificate=admin.pem \
-    --client-key=admin-key.pem \
-    --embed-certs=true \
-    --kubeconfig=admin.kubeconfig
+#   kubectl config set-credentials admin \
+#     --client-certificate=admin.pem \
+#     --client-key=admin-key.pem \
+#     --embed-certs=true \
+#     --kubeconfig=admin.kubeconfig
 
-  kubectl config set-context default \
-    --cluster=kubernetes \
-    --user=admin \
-    --kubeconfig=admin.kubeconfig
+#   kubectl config set-context default \
+#     --cluster=kubernetes \
+#     --user=admin \
+#     --kubeconfig=admin.kubeconfig
 
-  kubectl config use-context default --kubeconfig=admin.kubeconfig
-}
+#   kubectl config use-context default --kubeconfig=admin.kubeconfig
+# }
 
 # 生成 service-account的证书
 /bin/cp -rf ${kube_cert_dir}/k8s-ca.pem sa.pem
