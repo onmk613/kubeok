@@ -1,6 +1,6 @@
 #################################################
-# 清仔细阅读以下简介
-# 详细介绍参考: REAMDE.md
+# 执行前请阅读说明 | Read before running
+# 详细介绍参考: README.md
 
 # download.sh
 # 提前下载二进制文件减少每个主机的下载开销
@@ -23,43 +23,41 @@
 #################################################
 
 #################################################
-# 主机初始化, 主机架构判断, 当前只支持x86_64/aarch64
-# 防火墙, SELinux, Swap分区, 内核参数
-# 必要软件软件和工具安装
+# 主机初始化 | Node bootstrap
+# 包含架构工具、Swap/内核参数等基础配置
 #################################################
-- name: Install init-node
+- name: Bootstrap nodes
   hosts: init-node
   roles:
     - init-node
 #################################################
-# etcd部署
-# 可实现每个主机变量都自定义, 但不推荐这么做
-# 推荐官方的堆叠模式和mater主机保持一致
+# etcd 部署 | Deploy etcd cluster
+# 推荐使用与 master 对齐的堆叠模式
 #################################################
-- name: Install etcd
+- name: Deploy etcd
   hosts: etcd
   roles:
     - etcd
 #################################################
-# 安装Kubernetes控制组件
+# 安装 Kubernetes 控制面 | Deploy control-plane
 #################################################
-- name: Install kube-master
+- name: Deploy kube-master
   hosts: kube-master
   roles:
     - kube-master
 #################################################
-# 安装Kubernetes工作组件
-# 默认静态的nginx代理kube-apiserver
+# 安装 Kubernetes 节点组件 | Deploy worker components
+# 未配置外部 LB 时默认启用静态 nginx 代理 apiserver
 #################################################
-- name: Install kube-node
+- name: Deploy kube-node
   hosts: kube-node
   roles:
     - kube-node
 #################################################
-# Kubernetes组件安装, 其他组件自行安装
-# 如需要自定义安装可注释后不执行此任务
+# Kubernetes 附加组件安装 | Deploy addons
+# 如需自定义可按需注释此阶段
 #################################################
-- name: Install kube components
+- name: Deploy cluster addons
   hosts: kube-master[0]
   roles:
     - kube-components

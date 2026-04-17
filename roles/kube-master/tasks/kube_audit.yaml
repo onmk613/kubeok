@@ -1,4 +1,5 @@
-- name: Create audit log directory
+# 审计日志配置 | Audit policy and log directories
+- name: Audit | Ensure audit directories exist | 创建审计目录
   ansible.builtin.file:
     path: "{{ item }}"
     state: directory
@@ -7,7 +8,7 @@
     - "{{ audit_policy_file | dirname }}"
     - "{{ audit_log_path | dirname }}"
 
-- name: Copy audit policy file to host
+- name: Audit | Deploy audit policy file | 下发审计策略文件
   ansible.builtin.copy:
     src: "audit-policy.yaml"
     dest: "{{ audit_policy_file }}"

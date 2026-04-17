@@ -1,4 +1,5 @@
-- name: Copy RBAC files to host
+# RBAC 配置 | Bootstrap RBAC resources
+- name: RBAC | Copy bootstrap manifests to node | 下发 RBAC 清单
   ansible.builtin.copy:
     src: "{{ item }}"
     dest: "/tmp/{{ item }}"
@@ -7,22 +8,22 @@
     - "kube-apiserver-to-kubelet.yaml"
     - "kubelet-bootstrap.yaml"
 
-- name: Create kube-apiserver to kubelet CSRs
+- name: RBAC | Apply apiserver-to-kubelet permissions | 应用 apiserver 到 kubelet 权限
   ansible.builtin.shell: "kubectl apply -f /tmp/kube-apiserver-to-kubelet.yaml"
   register: kube_apiserver_to_kubelet
   failed_when: false
 
-- name: Print kube-apiserver to kubelet RBAC result
+- name: RBAC | Show apiserver-to-kubelet apply result | 输出 apiserver RBAC 结果
   ansible.builtin.debug:
     msg: "kube-apiserver to kubelet RBAC creation result: {{ kube_apiserver_to_kubelet.stdout }}"
 
-- name: Create kubelet bootstrap CSRs
+- name: RBAC | Apply kubelet bootstrap permissions | 应用 kubelet bootstrap 权限
   ansible.builtin.shell: "kubectl apply -f /tmp/kubelet-bootstrap.yaml"
   register: kubelet_bootstrap
   failed_when: false
   when: enable_bootstrap_token_auth
 
-- name: Print kubelet bootstrap RBAC result
+- name: RBAC | Show kubelet bootstrap apply result | 输出 bootstrap RBAC 结果
   ansible.builtin.debug:
     msg: "kubelet bootstrap RBAC creation result: {{ kubelet_bootstrap.stdout }}"
   when: enable_bootstrap_token_auth

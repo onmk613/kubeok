@@ -1,23 +1,24 @@
-- name: Backup | install cron package
+# etcd 自动备份 | Automated etcd snapshot job
+- name: Backup | Install cron package | 安装定时任务依赖
   ansible.builtin.package:
     name: "cron"
     state: present
     update_cache: true
   become: true
 
-- name: Backup | Create backup directory
+- name: Backup | Ensure backup directory exists | 创建备份目录
   ansible.builtin.file:
     path: "{{ etcd_backup_dir }}"
     state: directory
     mode: '0755'
 
-- name: Backup | Create backup script
+- name: Backup | Render backup script | 生成备份脚本
   ansible.builtin.template:
     src: "etcd_backup.sh.j2"
     dest: "{{ etcd_backup_dir }}/etcd_backup.sh"
     mode: '0755'
 
-- name: Backup | Add cron job for etcd backup
+- name: Backup | Register daily cron job | 注册每日备份计划任务
   ansible.builtin.cron:
     name: "etcd_backup"
     minute: "0"

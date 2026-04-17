@@ -1,4 +1,5 @@
-- name: Clean | Stop and disable kube-master service
+# kube-master 清理流程 | Cleanup flow
+- name: Clean | Stop and disable control-plane services | 停止并禁用控制面服务
   ansible.builtin.systemd:
     name: "{{ item }}"
     state: stopped
@@ -9,11 +10,11 @@
     - "kube-controller-manager"
     - "kube-scheduler"
 
-- name: Clean | Reload systemd daemon
+- name: Clean | Reload systemd daemon | 重载 systemd
   ansible.builtin.systemd:
     daemon_reload: true
 
-- name: Clean | Remove kube-master data files
+- name: Clean | Remove control-plane binaries and configs | 删除控制面程序与配置
   ansible.builtin.file:
     path: "{{ item }}"
     state: absent

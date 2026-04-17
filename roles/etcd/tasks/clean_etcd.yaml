@@ -1,15 +1,16 @@
-- name: Clean | Stop and disable etcd service
+# etcd 清理流程 | Cleanup flow
+- name: Clean | Stop and disable etcd service | 停止并禁用 etcd
   ansible.builtin.systemd:
     name: "etcd"
     state: stopped
     enabled: false
   failed_when: false
 
-- name: Clean | Reload systemd daemon
+- name: Clean | Reload systemd daemon | 重载 systemd
   ansible.builtin.systemd:
     daemon_reload: true
 
-- name: Clean | Remove etcd data files
+- name: Clean | Remove etcd binaries and data | 删除 etcd 程序与数据
   ansible.builtin.file:
     path: "{{ item }}"
     state: absent
@@ -22,12 +23,12 @@
     - "{{ etcd_wal_dir }}"
     - "/etc/systemd/system/etcd.service"
 
-- name: Clean | Remove etcd backup files
+- name: Clean | Remove etcd backup directory | 删除备份目录
   ansible.builtin.file:
     path: "{{ etcd_backup_dir }}"
     state: absent
 
-- name: Clean | Remove etcd backup cron job
+- name: Clean | Remove etcd backup cron job | 删除备份定时任务
   ansible.builtin.cron:
     name: "etcd_backup"
     state: absent

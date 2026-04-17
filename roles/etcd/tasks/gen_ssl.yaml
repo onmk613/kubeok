@@ -1,10 +1,11 @@
-- name: Create ssl certs directory
+# 证书生成 | TLS assets for etcd
+- name: TLS | Ensure etcd cert directory exists | 创建证书目录
   ansible.builtin.file:
     path: "{{ etcd_cert_dir }}"
     state: directory
     mode: '0755'
 
-- name: Copy ssl CA to host
+- name: TLS | Copy CA files to node | 下发 CA 文件
   ansible.builtin.copy:
     src: "{{ playbook_dir }}/packages/ssl/{{ item }}"
     dest: "{{ etcd_cert_dir }}/{{ item }}"
@@ -14,7 +15,7 @@
     - "etcd-ca.pem"
     - "etcd-ca-key.pem"
 
-- name: Script to generate ssl certs
+- name: TLS | Generate etcd node certificate | 生成 etcd 节点证书
   ansible.builtin.script: "gen_ssl.sh"
   environment:
     etcd_cert_dir: "{{ etcd_cert_dir }}"

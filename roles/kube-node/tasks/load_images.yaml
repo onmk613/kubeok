@@ -1,10 +1,11 @@
-- name: Images | Copy tar package to host
+# 离线镜像导入 | Offline image import
+- name: Images | Copy image tar package to node | 下发镜像压缩包
   ansible.builtin.copy:
     src: "{{ playbook_dir }}/packages/images/{{ ansible_architecture }}/kube-components-images.tar.gz"
     dest: "/tmp/kube-components-images.tar.gz"
     mode: '0644'
 
-- name: Images | ctr images import
+- name: Images | Import tar package into containerd | 导入镜像到 containerd
   ansible.builtin.command: "ctr -n k8s.io images import /tmp/kube-components-images.tar.gz"
   register: images_import
   retries: 5
@@ -12,6 +13,6 @@
   until: images_import.rc == 0
   changed_when: false
 
-- name: Images | Print import images
+- name: Images | Show import output | 输出导入结果
   ansible.builtin.debug:
     msg: "{{ images_import.stdout_lines }}"

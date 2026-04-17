@@ -1,10 +1,11 @@
-- name: Create ssl certs directory
+# 证书生成 | TLS assets for node
+- name: TLS | Ensure kube cert directory exists | 创建证书目录
   ansible.builtin.file:
     path: "{{ kube_cert_dir }}"
     state: directory
     mode: '0755'
 
-- name: Copy ssl CA to host
+- name: TLS | Copy CA files to node | 下发 CA 文件
   ansible.builtin.copy:
     src: "{{ playbook_dir }}/packages/ssl/{{ item }}"
     dest: "{{ kube_cert_dir }}/{{ item }}"
@@ -14,7 +15,7 @@
     - "k8s-ca.pem"
     - "k8s-ca-key.pem"
 
-- name: Script to generate kubelet ssl certs
+- name: TLS | Generate kubelet certificate and kubeconfig | 生成 kubelet 证书与配置
   ansible.builtin.script: "gen_kubelet_ssl.sh"
   environment:
     kube_cert_dir: "{{ kube_cert_dir }}"
@@ -22,7 +23,7 @@
     kube_node_ip: "{{ kube_node_ip }}"
     kube_node_name: "{{ kube_node_name }}"
 
-- name: Script to generate kube-proxy ssl certs
+- name: TLS | Generate kube-proxy certificate and kubeconfig | 生成 kube-proxy 证书与配置
   ansible.builtin.script: "gen_kube_proxy_ssl.sh"
   environment:
     kube_cert_dir: "{{ kube_cert_dir }}"

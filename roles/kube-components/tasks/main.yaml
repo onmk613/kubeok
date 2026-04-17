@@ -1,10 +1,11 @@
-- name: Mkdir chart host
+# 组件安装准备 | Prepare addon artifacts
+- name: Addons | Ensure tools directory exists | 创建组件工具目录
   ansible.builtin.file:
     path: "/etc/kubernetes/tools/"
     state: directory
     mode: '0755'
 
-- name: Copy components charts to host
+- name: Addons | Copy Helm chart packages | 下发 Helm Chart 包
   ansible.builtin.copy:
     src: "{{ item }}"
     dest: "/etc/kubernetes/tools/{{ item }}"
@@ -15,7 +16,7 @@
     - "kube-prometheus-stack-82.17.1.tgz"
     - "traefik-39.0.7.tgz"
 
-- name: Copy components yaml to host
+- name: Addons | Render addon manifest values | 渲染组件配置文件
   ansible.builtin.template:
     src: "{{ item }}.j2"
     dest: "/etc/kubernetes/tools/{{ item }}"
@@ -27,7 +28,8 @@
     - "metrics-server.yaml"
     - "traefik-values.yaml"
 
-- name: Apply coredns
+# 核心组件安装 | Core addons deployment
+- name: Addons | Apply CoreDNS manifest | 应用 CoreDNS 清单
   ansible.builtin.command:
     cmd: kubectl apply -f coredns.yaml
     chdir: /etc/kubernetes/tools/
@@ -35,7 +37,7 @@
   until: coredns_health.rc == 0
   changed_when: false
 
-- name: Apply metrics-server
+- name: Addons | Apply metrics-server manifest | 应用 metrics-server 清单
   ansible.builtin.command:
     cmd: kubectl apply -f metrics-server.yaml
     chdir: /etc/kubernetes/tools/
@@ -43,13 +45,14 @@
   until: metrics_server_health.rc == 0
   changed_when: false
 
-- name: Print metrics-server and coredns
+- name: Addons | Show CoreDNS and metrics-server output | 输出 CoreDNS/metrics-server 结果
   ansible.builtin.debug:
     msg: >-
       {{ coredns_health.stdout_lines }}
       {{ metrics_server_health.stdout_lines }}
 
-- name: Apply calico
+# 网络组件安装 | Network addon deployment
+- name: Addons | Install or upgrade Calico | 安装或升级 Calico
   ansible.builtin.command:
     cmd: helm upgrade --install calico ./tigera-operator-v3.31.4.tgz -f calico-values.yaml -n kube-system
     chdir: /etc/kubernetes/tools/
@@ -58,12 +61,12 @@
   changed_when: false
   when: network_mode == "calico"
 
-- name: Print network health
+- name: Addons | Show Calico output | 输出 Calico 执行结果
   ansible.builtin.debug:
     msg: "{{ calico_health.stdout_lines }}"
   when: network_mode == "calico"
 
-- name: Apply cilium
+- name: Addons | Install or upgrade Cilium | 安装或升级 Cilium
   ansible.builtin.command:
     cmd: helm upgrade --install cilium ./cilium-1.19.2.tgz -f cilium-values.yaml -n kube-system
     chdir: /etc/kubernetes/tools/
@@ -72,12 +75,13 @@
   changed_when: false
   when: network_mode == "cilium"
 
-- name: Print network health
+- name: Addons | Show Cilium output | 输出 Cilium 执行结果
   ansible.builtin.debug:
     msg: "{{ cilium_health.stdout_lines }}"
   when: network_mode == "cilium"
 
-- name: Apply kube-prometheus-stack
+# 可选组件安装 | Optional addons deployment
+- name: Addons | Install or upgrade kube-prometheus-stack | 安装或升级监控组件
   ansible.builtin.command:
     cmd: helm upgrade --install kube-prometheus ./kube-prometheus-stack-82.17.1.tgz -n kube-system
     chdir: /etc/kubernetes/tools/
@@ -86,7 +90,7 @@
   changed_when: false
   when: install_kube_prometheus_stack
 
-- name: Print prometheus health
+- name: Addons | Show prometheus stack output | 输出监控组件执行结果
   ansible.builtin.debug:
     msg: "{{ prometheus_health.stdout_lines }}"
   when: install_kube_prometheus_stack

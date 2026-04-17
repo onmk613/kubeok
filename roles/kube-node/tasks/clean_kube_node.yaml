@@ -1,4 +1,5 @@
-- name: Clean | Stop and disable kube-node service
+# kube-node 清理流程 | Cleanup flow
+- name: Clean | Stop and disable node services | 停止并禁用节点服务
   ansible.builtin.systemd:
     name: "{{ item }}"
     state: stopped
@@ -9,11 +10,11 @@
     - "kube-proxy"
     - "containerd"
 
-- name: Clean | Reload systemd daemon
+- name: Clean | Reload systemd daemon | 重载 systemd
   ansible.builtin.systemd:
     daemon_reload: true
 
-- name: Clean | Remove kube-node mount points
+- name: Clean | Unmount kubelet and containerd mount points | 卸载 kubelet/containerd 挂载点
   become: true
   ansible.builtin.shell: |
     for i in $(grep {{ item }} /proc/mounts | awk '{print $2}'); do
@@ -27,7 +28,7 @@
     - kubelet
     - containerd
 
-- name: Clean | Remove kube-node data files
+- name: Clean | Remove node binaries and data | 删除节点程序与数据
   ansible.builtin.file:
     path: "{{ item }}"
     state: absent
@@ -51,7 +52,7 @@
     - "{{ containerd_data_dir }}"
     - "{{ kubelet_data_dir }}"
 
-- name: Clean | Kill nginx proxy process if exists
+- name: Clean | Kill residual nginx proxy process | 终止残留 nginx 代理进程
   become: true
   ansible.builtin.shell: "pgrep nginx | xargs kill -9"
   args:

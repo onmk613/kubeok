@@ -1,4 +1,5 @@
-- name: Copy binary files to host
+# 节点初始化 | Node bootstrap
+- name: Bootstrap | Install cfssl tools | 安装 cfssl 工具
   ansible.builtin.copy:
     src: "{{ playbook_dir }}/packages/cfssl/{{ ansible_architecture }}/{{ item }}"
     dest: "{{ bin_dir }}/{{ item }}"
@@ -6,41 +7,45 @@
   loop:
     - "cfssl"
     - "cfssljson"
-- name: Ipv4 forwarding
+
+# 内核参数调优 | Kernel sysctl tuning
+- name: Sysctl | Enable IPv4 forwarding | 开启 IPv4 转发
   ansible.posix.sysctl:
     name: net.ipv4.ip_forward
     value: "1"
     state: present
     reload: true
 # for high latency internet
-- name: Tune socket stream receive buf
+- name: Sysctl | Tune socket receive buffer | 调优接收缓冲区
   ansible.posix.sysctl:
     name: net.core.rmem_max
     value: "4194304"
     state: present
     reload: true
-- name: Ipv6 default forwarding
+- name: Sysctl | Enable IPv6 default forwarding | 开启 IPv6 默认转发
   ansible.posix.sysctl:
     name: net.ipv6.conf.default.forwarding
     value: "1"
     state: present
     reload: true
-- name: Ipv6 all forwarding
+- name: Sysctl | Enable IPv6 global forwarding | 开启 IPv6 全局转发
   ansible.posix.sysctl:
     name: net.ipv6.conf.all.forwarding
     value: "1"
     state: present
     reload: true
-- name: Inotify user
+- name: Sysctl | Increase inotify instances | 提升 inotify 实例上限
   ansible.posix.sysctl:
     name: fs.inotify.max_user_instances
     value: "1024"
     state: present
     reload: true
-- name: Disable swap
+
+# Swap 关闭 | Disable swap for kubelet requirement
+- name: Swap | Disable swap immediately | 立即关闭 Swap
   ansible.builtin.command: swapoff -a
   failed_when: false
-- name: Swapoff persist
+- name: Swap | Remove swap entry from fstab | 持久化关闭 Swap
   ansible.builtin.lineinfile:
     path: /etc/fstab
     backup: true

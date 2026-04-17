@@ -1,0 +1,107 @@
+# 证书滚动更新 Playbook | Rolling certificate renewal playbook
+
+- name: Renew etcd certificates
+  hosts: etcd
+  become: true
+  gather_facts: false
+  serial: 1
+  tags:
+    - cert_etcd
+  tasks:
+    - name: CertUpdate | Etcd | Regenerate TLS certificates | 重新生成 etcd 证书
+      ansible.builtin.include_role:
+        name: etcd
+        tasks_from: gen_ssl.yaml
+
+    - name: CertUpdate | Etcd | Restart etcd service | 重启 etcd 服务
+      ansible.builtin.systemd:
+        name: etcd
+        state: restarted
+        enabled: true
+
+    - name: CertUpdate | Etcd | Verify endpoint health | 验证 etcd 健康
+      ansible.builtin.command: "{{ bin_dir | default('/usr/bin') }}/etcdctl endpoint health --cluster -w table"
+      register: cert_update_etcd_health
+      retries: 5
+      delay: 5
+      until: cert_update_etcd_health.rc == 0
+      changed_when: false
+      environment:
+        ETCDCTL_API: "3"
+        ETCDCTL_CACERT: "{{ etcd_cert_dir | default('/etc/etcd/pki') }}/etcd-ca.pem"
+        ETCDCTL_CERT: "{{ etcd_cert_dir | default('/etc/etcd/pki') }}/etcd.pem"
+        ETCDCTL_KEY: "{{ etcd_cert_dir | default('/etc/etcd/pki') }}/etcd-key.pem"
+        ETCDCTL_ENDPOINTS: "https://127.0.0.1:{{ etcd_client_port | default(2379) }}"
+
+- name: Renew kube-master certificates
+  hosts: kube-master
+  become: true
+  gather_facts: false
+  serial: 1
+  tags:
+    - cert_master
+  tasks:
+    - name: CertUpdate | Master | Build master IP fact | 生成 master IP 变量
+      ansible.builtin.set_fact:
+        kube_master_ip: "{{ internal_ip | default(ansible_host) }}"
+
+    - name: CertUpdate | Master | Regenerate TLS certificates | 重新生成控制面证书
+      ansible.builtin.include_role:
+        name: kube-master
+        tasks_from: gen_ssl.yaml
+
+    - name: CertUpdate | Master | Restart control-plane services | 重启控制面服务
+      ansible.builtin.systemd:
+        name: "{{ item }}"
+        state: restarted
+        enabled: true
+      loop:
+        - kube-apiserver
+        - kube-controller-manager
+        - kube-scheduler
+
+    - name: CertUpdate | Master | Verify API readiness | 验证 API 就绪状态
+      ansible.builtin.command: "{{ bin_dir | default('/usr/bin') }}/kubectl get --raw='/readyz'"
+      register: cert_update_master_ready
+      retries: 6
+      delay: 5
+      until: cert_update_master_ready.rc == 0
+      changed_when: false
+
+- name: Renew kube-node certificates
+  hosts: kube-node
+  become: true
+  gather_facts: false
+  serial: "20%"
+  tags:
+    - cert_node
+  tasks:
+    - name: CertUpdate | Node | Build node facts | 生成节点变量
+      ansible.builtin.set_fact:
+        kube_node_ip: "{{ internal_ip | default(ansible_host) }}"
+        kube_node_name: "{{ (internal_ip | default(ansible_host)) if use_ip_as_hostname else inventory_hostname }}"
+
+    - name: CertUpdate | Node | Build apiserver endpoint | 生成 apiserver 地址
+      ansible.builtin.set_fact:
+        kube_master_endpoint: >-
+          {{
+            kube_master_lb if kube_master_lb is defined else 'https://127.0.0.1:' + (kube_apiserver_port | default(6443) | string)
+          }}
+
+    - name: CertUpdate | Node | Regenerate node certificates | 重新生成节点证书
+      ansible.builtin.include_role:
+        name: kube-node
+        tasks_from: gen_ssl.yaml
+
+    - name: CertUpdate | Node | Restart kubelet service | 重启 kubelet
+      ansible.builtin.systemd:
+        name: kubelet
+        state: restarted
+        enabled: true
+
+    - name: CertUpdate | Node | Restart kube-proxy when enabled | 按需重启 kube-proxy
+      ansible.builtin.systemd:
+        name: kube-proxy
+        state: restarted
+        enabled: true
+      when: not (cilium_replace_kube_proxy | default(true))
