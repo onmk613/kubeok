@@ -4,16 +4,22 @@ set -o nounset
 set -o errexit
 set -o pipefail
 
+# 创建下载包目录
 mkdir -p packages || true
 cd packages
 
+# 判断操作系统
 if [[ "$OSTYPE" == "darwin"* ]]; then
+    if ! command -v gtar >/dev/null 2>&1 || ! command -v cfssl >/dev/null 2>&1 || ! command -v openssl >/dev/null 2>&1; then
+        echo "Please install the dependencies first: brew install gnu-tar cfssl openssl"
+        exit 1
+    fi
     TAR_CMD="gtar"
 else
     TAR_CMD="tar"
 fi
 
-# Set architecture environment variables
+# 判断传入的主机架构
 set_arch_env() {
     host_arch="${host_arch:-x86_64}"
     case "$host_arch" in
@@ -41,11 +47,9 @@ helm_version="v4.1.3"
 
 # releases url
 # https://github.com/cloudflare/cfssl/releases
-# https://github.com/cloudflare/cfssl/releases
 # https://github.com/etcd-io/etcd/releases
 # https://github.com/containerd/containerd/releases
 # https://github.com/opencontainers/runc/releases
-
 # https://github.com/kubernetes-sigs/cri-tools/releases
 
 # https://github.com/kubernetes/kubernetes/releases
@@ -57,8 +61,17 @@ helm_version="v4.1.3"
 # cfssl download
 download_cfssl_binary() {
     mkdir -p cfssl/${host_arch}
-    wget https://github.com/cloudflare/cfssl/releases/download/v${cfssl_version}/cfssl_${cfssl_version}_linux_${host_arch_alias} -O cfssl/${host_arch}/cfssl
-    wget https://github.com/cloudflare/cfssl/releases/download/v${cfssl_version}/cfssljson_${cfssl_version}_linux_${host_arch_alias} -O cfssl/${host_arch}/cfssljson
+    local_arch=$(uname -m)
+    local_kernel=$(uname -s)
+    if ${local_arch} != ${host_arch} && ${local_kernel} == "Linux"; then
+        wget https://github.com/cloudflare/cfssl/releases/download/v${cfssl_version}/cfssl_${cfssl_version}_linux_amd64 -O cfssl/x86_64/cfssl
+        wget https://github.com/cloudflare/cfssl/releases/download/v${cfssl_version}/cfssljson_${cfssl_version}_linux_amd64 -O cfssl/x86_64/cfssljson
+        wget https://github.com/cloudflare/cfssl/releases/download/v${cfssl_version}/cfssl_${cfssl_version}_linux_arm64 -O cfssl/aarch64/cfssl
+        wget https://github.com/cloudflare/cfssl/releases/download/v${cfssl_version}/cfssljson_${cfssl_version}_linux_arm64 -O cfssl/aarch64/cfssljson
+    else
+        wget https://github.com/cloudflare/cfssl/releases/download/v${cfssl_version}/cfssl_${cfssl_version}_linux_${host_arch_alias} -O cfssl/${host_arch}/cfssl
+        wget https://github.com/cloudflare/cfssl/releases/download/v${cfssl_version}/cfssljson_${cfssl_version}_linux_${host_arch_alias} -O cfssl/${host_arch}/cfssljson
+    fi
 }
 
 # etcd download
@@ -99,18 +112,71 @@ download_kube_binary() {
     rm -f crictl-${crictl_version}-linux-${host_arch_alias}.tar.gz
 }
 
-download_required_components() {
-    docker pull --platform linux/ ${host_arch_alias} nginx:1.24.0
+gen_ssl() {
+    mkdir -p packages/ssl || true
+    cd packages/ssl
+
+    cat <<EOF | tee ca-csr.json
+{
+  "CN": "kubernetes and etcd",
+  "key": {
+    "algo": "ecdsa",
+    "size": 256
+  },
+  "names": [
+    {
+      "C": "CN",
+      "ST": "SiChuan",
+      "L": "ChengDu",
+      "O": "kubernetes and etcd System",
+      "OU": "kubernetes and etcd Security"
+    }
+  ],
+  "ca": {
+    "expiry": "876000h"
+  }
+}
+EOF
+
+    cat <<EOF | tee ca-config.json
+{
+  "signing": {
+    "default": {
+      "expiry": "876000h"
+    },
+    "profiles": {
+      "kubernetes": {
+        "usages": [
+            "signing",
+            "key encipherment",
+            "server auth",
+            "client auth"
+        ],
+        "expiry": "876000h"
+      }
+    }
+  }
+}
+EOF
+
+    # 生成证书
+    if ! command -v cfssl >/dev/null 2>&1 || ! command -v cfssljson >/dev/null 2>&1; then
+        ../cfssl/${host_arch}/cfssl gencert -initca ca-csr.json | ../cfssl/${host_arch}/cfssljson -bare k8s-ca
+        ../cfssl/${host_arch}/cfssl gencert -initca ca-csr.json | ../cfssl/${host_arch}/cfssljson -bare etcd-ca
+    else
+        cfssl gencert -initca ca-csr.json | cfssljson -bare k8s-ca
+        cfssl gencert -initca ca-csr.json | cfssljson -bare etcd-ca
+        openssl x509 -in k8s-ca.pem -text -noout
+        openssl x509 -in etcd-ca.pem -text -noout
+    fi
+
+    rm -f k8s-ca.csr etcd-ca.csr
+    cd -
 }
 
 # Main execution
+download_cfssl_binary
 download_etcd_binary
 download_containerd_binary
 download_kube_binary
-download_cfssl_binary
-
-# 下载必要组件镜像, pause, coredns, metrics-server
-# 网络插件(可选): flannel/calico/cilium
-# ingress(可选): nginx/traefik
-# 监控(可选): prometheus
-# download_required_components
+gen_ssl
